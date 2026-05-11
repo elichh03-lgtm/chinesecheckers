@@ -21,6 +21,8 @@ export function GameBoard(): JSX.Element {
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
     let running = true;
+    const reduceMotionMQ =
+      typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
 
     function fitCanvas(): { size: number; origin: Pixel } {
       const container = containerRef.current!;
@@ -43,9 +45,11 @@ export function GameBoard(): JSX.Element {
       const s = useGameStore.getState();
 
       // Drain finished animation; pop the next pending one (if any).
+      // When reduced motion is on, complete immediately so the next move can land.
       if (s.animatingMove) {
+        const reduce = !!reduceMotionMQ?.matches;
         const elapsed = performance.now() - s.animatingMove.startedAt;
-        if (elapsed >= s.animatingMove.duration) {
+        if (reduce || elapsed >= s.animatingMove.duration) {
           s.completeAnimation();
         }
       }
@@ -77,6 +81,7 @@ export function GameBoard(): JSX.Element {
         now: performance.now(),
         size,
         origin,
+        reduceMotion: !!reduceMotionMQ?.matches,
       });
       requestAnimationFrame(frame);
     }

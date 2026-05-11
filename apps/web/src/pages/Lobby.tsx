@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import type { RoomSummary, PlayerCount } from '@cc/shared-types';
 import { toast } from '@/stores/toast';
 import { getMuted, setMuted, subscribe as subscribeSound } from '@/lib/sound';
+import { SUPPORTED_LOCALES } from '@/i18n';
 
 const PLAYER_COLORS_FOR_COUNT: Record<PlayerCount, string[]> = {
   2: ['#FF5C5C', '#FFD93D'],
@@ -14,6 +16,7 @@ const PLAYER_COLORS_FOR_COUNT: Record<PlayerCount, string[]> = {
 };
 
 export function Lobby(): JSX.Element {
+  const { t } = useTranslation();
   const auth = useAuthStore();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<RoomSummary[] | null>(null);
@@ -60,7 +63,7 @@ export function Lobby(): JSX.Element {
       });
       navigate(`/game/${data.gameId}`);
     } catch {
-      toast.error("Couldn't create room");
+      toast.error(t('lobby.createCouldNotCreate'));
     }
   }
 
@@ -77,8 +80,9 @@ export function Lobby(): JSX.Element {
               to="/leaderboard"
               className="px-3 py-1.5 rounded-md text-muted hover:text-text hover:bg-panel transition"
             >
-              Leaderboard
+              {t('common.leaderboard')}
             </Link>
+            <LanguageSwitcher />
             <MuteToggle />
             {auth.username && (
               <Link
@@ -95,7 +99,7 @@ export function Lobby(): JSX.Element {
               }}
               className="px-3 py-1.5 rounded-md text-muted hover:text-text hover:bg-panel transition"
             >
-              Sign out
+              {t('common.signOut')}
             </button>
           </nav>
         </div>
@@ -104,15 +108,15 @@ export function Lobby(): JSX.Element {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex items-end justify-between mb-6 gap-4 flex-wrap">
           <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">Lobby</h1>
-            <p className="text-muted text-sm mt-1">Public games. Click to join, or start your own.</p>
+            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">{t('lobby.title')}</h1>
+            <p className="text-muted text-sm mt-1">{t('lobby.subtitle')}</p>
           </div>
           <button
             data-testid="new-room-btn"
             onClick={() => setCreating(true)}
             className="bg-accent hover:bg-accent/90 text-ink font-semibold px-5 py-2.5 rounded-md text-sm transition shadow-sm"
           >
-            + New Room
+            {t('lobby.newRoom')}
           </button>
         </div>
 
@@ -160,6 +164,7 @@ function RoomCard({
   onJoin: () => void;
   onWatch: () => void;
 }): JSX.Element {
+  const { t } = useTranslation();
   const filled = room.currentPlayers;
   const total = room.playerCount;
   const colors = PLAYER_COLORS_FOR_COUNT[total];
@@ -191,13 +196,11 @@ function RoomCard({
           <div className="flex-1 min-w-0">
             <div className="font-semibold truncate">{room.name}</div>
             <div className="text-xs text-muted mt-0.5 flex items-center gap-2 flex-wrap">
-              <span>by @{room.hostUsername}</span>
+              <span>{t('lobby.byHost', { name: room.hostUsername })}</span>
               <span className="text-line">·</span>
-              <span>
-                {filled}/{total} players
-              </span>
+              <span>{t('lobby.playersFraction', { filled, total })}</span>
               <span className="text-line">·</span>
-              <span>{room.timer}s timer</span>
+              <span>{t('lobby.timerSeconds', { count: room.timer })}</span>
             </div>
           </div>
         </button>
@@ -214,11 +217,11 @@ function RoomCard({
                 }}
                 className="text-[11px] px-2 py-1 rounded-md border border-line text-muted hover:text-accent hover:border-accent/50 transition"
               >
-                Watch
+                {t('lobby.watch')}
               </button>
             )}
             <span className="text-xs text-muted group-hover:text-accent transition">
-              {isActive ? 'Watch' : isFull ? 'Full' : 'Join'} →
+              {isActive ? t('lobby.watch') : isFull ? t('lobby.full') : t('lobby.join')} →
             </span>
           </div>
         </div>
@@ -228,10 +231,11 @@ function RoomCard({
 }
 
 function StatusBadge({ status }: { status: string }): JSX.Element {
+  const { t } = useTranslation();
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    waiting: { bg: 'bg-yellow/15', text: 'text-yellow', label: 'Waiting' },
-    active: { bg: 'bg-green/15', text: 'text-green', label: 'Live' },
-    completed: { bg: 'bg-line', text: 'text-muted', label: 'Done' },
+    waiting: { bg: 'bg-yellow/15', text: 'text-yellow', label: t('lobby.waiting') },
+    active: { bg: 'bg-green/15', text: 'text-green', label: t('lobby.live') },
+    completed: { bg: 'bg-line', text: 'text-muted', label: t('lobby.done') },
   };
   const s = map[status] ?? map.waiting!;
   return (
@@ -261,43 +265,35 @@ function RoomsSkeleton(): JSX.Element {
 }
 
 function EmptyRooms({ onCreate }: { onCreate: () => void }): JSX.Element {
+  const { t } = useTranslation();
   return (
     <div className="bg-panel rounded-xl border border-dashed border-line p-12 text-center animate-fade-in">
       <Star className="w-12 h-12 text-line mx-auto mb-3" />
-      <p className="font-semibold text-text">No public rooms yet</p>
-      <p className="text-sm text-muted mt-1">Be the first to start a game.</p>
+      <p className="font-semibold text-text">{t('lobby.noRoomsTitle')}</p>
+      <p className="text-sm text-muted mt-1">{t('lobby.noRoomsSubtitle')}</p>
       <button
         onClick={onCreate}
         className="mt-4 bg-accent text-ink font-semibold px-5 py-2 rounded-md text-sm hover:bg-accent/90 transition"
       >
-        + New Room
+        {t('lobby.newRoom')}
       </button>
     </div>
   );
 }
 
 function SidebarTips(): JSX.Element {
+  const { t } = useTranslation();
   return (
     <aside className="bg-panel rounded-xl border border-line p-5 h-fit space-y-4 animate-fade-in">
       <div>
-        <div className="text-xs uppercase tracking-wider text-muted mb-2">How to play</div>
+        <div className="text-xs uppercase tracking-wider text-muted mb-2">{t('lobby.howToPlayTitle')}</div>
         <ul className="text-sm space-y-2 text-text">
-          <li className="flex gap-2">
-            <span className="text-accent">→</span>
-            Move marbles one step into an empty hex.
-          </li>
-          <li className="flex gap-2">
-            <span className="text-accent">→</span>
-            Or jump over any marble in a straight line.
-          </li>
-          <li className="flex gap-2">
-            <span className="text-accent">→</span>
-            Chain jumps for fast crosses.
-          </li>
-          <li className="flex gap-2">
-            <span className="text-accent">→</span>
-            First to fill the opposite triangle wins.
-          </li>
+          {(['howToPlay1', 'howToPlay2', 'howToPlay3', 'howToPlay4'] as const).map((k) => (
+            <li className="flex gap-2" key={k}>
+              <span className="text-accent" aria-hidden>→</span>
+              {t(`lobby.${k}`)}
+            </li>
+          ))}
         </ul>
       </div>
     </aside>

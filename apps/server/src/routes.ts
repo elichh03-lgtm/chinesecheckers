@@ -31,6 +31,10 @@ import { env, googleConfigured, googleCallbackUrl, s3Configured } from './env.js
 import { getAvatarPresignedPutUrl } from './lib/s3.js';
 import { isPwned } from './lib/hibp.js';
 import { sendPasswordReset } from './lib/mailer.js';
+import { logger } from './lib/logger.js';
+import { redis } from './lib/redis.js';
+import { audit, ipFromReq, uaFromReq } from './lib/audit.js';
+import * as Sentry from '@sentry/node';
 
 function getAuthUserId(req: Request): string | null {
   const auth = req.header('authorization') ?? '';
@@ -101,6 +105,31 @@ function csrfOk(req: Request): boolean {
 
 export const router: RouterType = Router();
 
+router.get('/ready', async (_req, res): Promise<void> => {
+  res.setHeader('Cache-Control', 'no-store');
+  const checks: { db: boolean; redis: boolean; dbError?: string; redisError?: string } = {
+    db: false,
+    redis: false,
+  };
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    checks.db = true;
+  } catch (err) {
+    checks.dbError = (err as Error).message;
+    logger.error({ err }, 'readiness: db check failed');
+  }
+  try {
+    const pong = await redis.ping();
+    checks.redis = pong === 'PONG';
+    if (!checks.redis) checks.redisError = `unexpected reply: ${pong}`;
+  } catch (err) {
+    checks.redisError = (err as Error).message;
+    logger.error({ err }, 'readiness: redis check failed');
+  }
+  const ok = checks.db && checks.redis;
+  res.status(ok ? 200 : 503).json({ ok, ...checks });
+});
+
 const UsernameSchema = z.string().min(2).max(20).regex(/^[a-zA-Z0-9_]+$/);
 const PasswordSchema = z.string().min(8).max(100);
 
@@ -138,8 +167,7 @@ const passwordResetLimiter = rateLimit({
 });
 
 function logInvalidPayload(route: string, err: z.ZodError): void {
-  // eslint-disable-next-line no-console
-  console.warn(`[invalid-payload] ${route}`, JSON.stringify(err.flatten()));
+  logger.warn({ route, errors: err.flatten() }, 'invalid payload');
 }
 
 const createRoomLimiter = rateLimit({
@@ -191,11 +219,25 @@ router.post('/auth/login', loginLimiter, async (req, res): Promise<void> => {
   }
   const user = await findUserByName(parsed.data.username, { withPasswordHash: true });
   if (!user || !user.passwordHash) {
+    await audit({
+      userId: user?.id ?? null,
+      action: 'login.failure',
+      metadata: { username: parsed.data.username, reason: 'unknown_user_or_no_password' },
+      ipAddress: ipFromReq(req),
+      userAgent: uaFromReq(req),
+    });
     res.status(401).json({ error: 'INVALID_CREDENTIALS' });
     return;
   }
   const ok = await verifyPassword(parsed.data.password, user.passwordHash);
   if (!ok) {
+    await audit({
+      userId: user.id,
+      action: 'login.failure',
+      metadata: { username: parsed.data.username, reason: 'bad_password' },
+      ipAddress: ipFromReq(req),
+      userAgent: uaFromReq(req),
+    });
     res.status(401).json({ error: 'INVALID_CREDENTIALS' });
     return;
   }
@@ -203,6 +245,13 @@ router.post('/auth/login', loginLimiter, async (req, res): Promise<void> => {
   const refreshToken = await issueRefreshToken(user.id);
   setRefreshCookie(res, refreshToken);
   setCsrfCookie(res);
+  await audit({
+    userId: user.id,
+    action: 'login.success',
+    metadata: { username: user.username },
+    ipAddress: ipFromReq(req),
+    userAgent: uaFromReq(req),
+  });
   res.json({
     user: { id: user.id, username: user.username },
     token: accessToken,
@@ -289,11 +338,18 @@ router.post('/auth/forgot', passwordResetLimiter, async (req, res): Promise<void
         expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
       },
     });
+    await audit({
+      userId: user.id,
+      action: 'password.reset.issued',
+      metadata: { username: user.username },
+      ipAddress: ipFromReq(req),
+      userAgent: uaFromReq(req),
+    });
     try {
       await sendPasswordReset({ to: user.email, username: user.username, token });
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[reset] sendPasswordReset failed', err);
+      logger.error({ err, userId: user.id }, 'sendPasswordReset failed');
+      Sentry.captureException(err);
     }
   }
   res.json({ ok: true });
@@ -330,6 +386,19 @@ router.post('/auth/reset', passwordResetLimiter, async (req, res): Promise<void>
       data: { revokedAt: new Date() },
     }),
   ]);
+  await audit({
+    userId: record.userId,
+    action: 'password.reset.used',
+    ipAddress: ipFromReq(req),
+    userAgent: uaFromReq(req),
+  });
+  await audit({
+    userId: record.userId,
+    action: 'password.change',
+    metadata: { via: 'reset' },
+    ipAddress: ipFromReq(req),
+    userAgent: uaFromReq(req),
+  });
   clearRefreshCookie(res);
   clearCsrfCookie(res);
   res.json({ ok: true });
@@ -409,8 +478,19 @@ router.post('/rooms', createRoomLimiter, async (req, res): Promise<void> => {
   res.status(201).json({ gameId: room.gameId });
 });
 
+// The lobby polls /rooms every 2s. A 1s in-memory TTL coalesces concurrent
+// pollers onto a single store fetch — at 100 clients × 30 req/min, we go from
+// ~3000 store reads/min to ~60.
+let roomsCache: { at: number; payload: { rooms: Awaited<ReturnType<typeof listPublicRooms>> } } | null = null;
+const ROOMS_CACHE_TTL_MS = 1000;
+
 router.get('/rooms', async (_req, res): Promise<void> => {
-  res.json({ rooms: await listPublicRooms() });
+  const now = Date.now();
+  if (!roomsCache || now - roomsCache.at > ROOMS_CACHE_TTL_MS) {
+    roomsCache = { at: now, payload: { rooms: await listPublicRooms() } };
+  }
+  res.setHeader('Cache-Control', 'public, max-age=1');
+  res.json(roomsCache.payload);
 });
 
 router.get('/games/:gameId', async (req, res): Promise<void> => {
@@ -427,6 +507,11 @@ router.get('/games/:gameId', async (req, res): Promise<void> => {
   if (!game) {
     res.status(404).json({ error: 'NOT_FOUND' });
     return;
+  }
+  // Completed games are immutable; let browsers cache the replay payload for
+  // a day so re-watches don't hit the API at all.
+  if (game.endedAt) {
+    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
   }
   res.json({
     gameId: game.id,
@@ -501,6 +586,7 @@ router.get('/users/:username', async (req, res): Promise<void> => {
     res.status(404).json({ error: 'NOT_FOUND' });
     return;
   }
+  res.setHeader('Cache-Control', 'public, max-age=300');
   res.json(user);
 });
 
@@ -513,6 +599,7 @@ router.get('/leaderboard', async (req, res): Promise<void> => {
     take: 50,
     include: { user: { select: { username: true } } },
   });
+  res.setHeader('Cache-Control', 'public, max-age=60');
   res.json({
     mode,
     rows: top.map((r, i) => ({
@@ -684,17 +771,38 @@ router.delete('/me', deleteLimiter, async (req, res): Promise<void> => {
   // Defensive — cascade already removed refresh tokens, but no-op is cheap.
   await revokeAllRefreshTokens(userId).catch(() => undefined);
 
+  await audit({
+    userId: null,
+    action: 'account.deleted',
+    metadata: { originalUserId: userId, originalUsername: user.username, synthId },
+    ipAddress: ipFromReq(req),
+    userAgent: uaFromReq(req),
+  });
+
   res.status(204).end();
 });
 
 // ────────────────────────── Admin: active games ──────────────────────────
 
-router.get('/admin/games', async (req, res): Promise<void> => {
+function isAdmin(req: Request): string | null {
   const userId = getAuthUserId(req);
-  if (!userId || !env.ADMIN_USER_ID || userId !== env.ADMIN_USER_ID) {
+  if (!userId || !env.ADMIN_USER_ID || userId !== env.ADMIN_USER_ID) return null;
+  return userId;
+}
+
+router.get('/admin/games', async (req, res): Promise<void> => {
+  const adminId = isAdmin(req);
+  if (!adminId) {
     res.status(404).json({ error: 'NOT_FOUND' });
     return;
   }
+  await audit({
+    userId: adminId,
+    action: 'admin.access',
+    metadata: { endpoint: '/admin/games' },
+    ipAddress: ipFromReq(req),
+    userAgent: uaFromReq(req),
+  });
   const rooms = await listAllRooms();
   const now = Date.now();
   const games = rooms.map((r) => {
@@ -716,6 +824,86 @@ router.get('/admin/games', async (req, res): Promise<void> => {
     games,
     totalActive: games.filter((g) => g.status === 'active').length,
   });
+});
+
+// ────────────────────────── Admin: audit log ──────────────────────────
+
+router.get('/admin/audit', async (req, res): Promise<void> => {
+  const adminId = isAdmin(req);
+  if (!adminId) {
+    res.status(404).json({ error: 'NOT_FOUND' });
+    return;
+  }
+  await audit({
+    userId: adminId,
+    action: 'admin.access',
+    metadata: { endpoint: '/admin/audit' },
+    ipAddress: ipFromReq(req),
+    userAgent: uaFromReq(req),
+  });
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 200));
+  const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
+  const entries = await prisma.auditLog.findMany({
+    take: limit + 1,
+    ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    orderBy: { createdAt: 'desc' },
+  });
+  const hasMore = entries.length > limit;
+  const page = hasMore ? entries.slice(0, limit) : entries;
+  res.json({
+    entries: page,
+    nextCursor: hasMore ? page[page.length - 1]?.id ?? null : null,
+  });
+});
+
+// ────────────────────────── Admin: metrics ──────────────────────────
+
+router.get('/admin/metrics', async (req, res): Promise<void> => {
+  const adminId = isAdmin(req);
+  if (!adminId) {
+    res.status(404).json({ error: 'NOT_FOUND' });
+    return;
+  }
+  await audit({
+    userId: adminId,
+    action: 'admin.access',
+    metadata: { endpoint: '/admin/metrics' },
+    ipAddress: ipFromReq(req),
+    userAgent: uaFromReq(req),
+  });
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [rooms, totalUsers, completedGamesToday, refreshTokens24h] = await Promise.all([
+    listAllRooms(),
+    prisma.user.count(),
+    prisma.game.count({ where: { endedAt: { gte: startOfDay } } }),
+    prisma.refreshToken.count({ where: { createdAt: { gte: dayAgo } } }),
+  ]);
+  res.json({
+    activeRooms: rooms.length,
+    totalUsers,
+    completedGamesToday,
+    refreshTokensIssued24h: refreshTokens24h,
+  });
+});
+
+// ────────────────────────── Admin: debug throw ──────────────────────────
+
+router.get('/debug/throw', (req, res, next): void => {
+  const adminId = isAdmin(req);
+  if (!adminId) {
+    res.status(404).json({ error: 'NOT_FOUND' });
+    return;
+  }
+  void audit({
+    userId: adminId,
+    action: 'admin.access',
+    metadata: { endpoint: '/debug/throw' },
+    ipAddress: ipFromReq(req),
+    userAgent: uaFromReq(req),
+  });
+  next(new Error('debug/throw: forced exception for Sentry verification'));
 });
 
 // -----------------------------------------------------------------------------
@@ -798,6 +986,13 @@ router.get('/auth/google/callback', async (req, res): Promise<void> => {
     const refreshToken = await issueRefreshToken(user.id);
     setRefreshCookie(res, refreshToken);
     setCsrfCookie(res);
+    await audit({
+      userId: user.id,
+      action: 'oauth.login',
+      metadata: { provider: 'google' },
+      ipAddress: ipFromReq(req),
+      userAgent: uaFromReq(req),
+    });
     const hash = new URLSearchParams({
       token: accessToken,
       refreshToken,

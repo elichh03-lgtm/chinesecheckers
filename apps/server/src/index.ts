@@ -8,7 +8,9 @@ import { env, s3Configured } from './env.js';
 import { router } from './routes.js';
 import { attachSocket } from './socket.js';
 import { prisma } from './lib/prisma.js';
+import { logger } from './lib/logger.js';
 import { cleanupExpiredRefreshTokens } from './auth.js';
+import { requestId } from './requestId.js';
 
 if (env.SENTRY_DSN) {
   Sentry.init({
@@ -52,58 +54,66 @@ app.use(
 app.use(cors({ origin: env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(requestId);
 
-app.get('/api/v1/health', (_req, res) => res.json({ ok: true }));
+app.get('/api/v1/health', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true });
+});
 app.use('/api/v1', router);
 
 if (env.SENTRY_DSN) {
   app.use(Sentry.Handlers.errorHandler());
 }
 
+// Final express error handler — logs structured error and ensures a JSON
+// response. Sentry.errorHandler (above) already captured the exception when
+// a DSN is configured; capture here as a fallback for forced-throw debugging
+// in environments without Sentry.
+app.use((err: Error & { status?: number }, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = err.status ?? 500;
+  const reqLog = res.locals.logger ?? logger;
+  reqLog.error({ err: err.message, stack: err.stack, status }, 'unhandled request error');
+  if (!env.SENTRY_DSN && status >= 500) {
+    Sentry.captureException(err);
+  }
+  if (res.headersSent) return;
+  res.status(status).json({ error: status >= 500 ? 'INTERNAL_ERROR' : err.message });
+});
+
 const server = createServer(app);
 const io = attachSocket(server);
 
 server.listen(env.PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(`server listening on :${env.PORT}`);
+  logger.info({ port: env.PORT }, 'server listening');
 });
 
 // Review fix: prune expired / long-revoked refresh tokens at boot and every
 // 6h thereafter. .unref()'d so it never holds the event loop open.
 if (env.NODE_ENV !== 'test') {
   void cleanupExpiredRefreshTokens().catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error('[refresh-cleanup] boot run failed', err);
+    logger.error({ err }, 'refresh-cleanup boot run failed');
+    Sentry.captureException(err);
   });
   setInterval(() => {
     void cleanupExpiredRefreshTokens().catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error('[refresh-cleanup] interval run failed', err);
+      logger.error({ err }, 'refresh-cleanup interval run failed');
+      Sentry.captureException(err);
     });
   }, 6 * 60 * 60 * 1000).unref();
 }
 
-/**
- * Graceful shutdown: drain socket connections, close the HTTP server, then
- * disconnect Prisma. Active games are NOT auto-completed (would skew ELO);
- * connected clients get a transport-level disconnect and can reconnect against
- * a new instance once it boots.
- */
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
-  // eslint-disable-next-line no-console
-  console.log(`[shutdown] received ${signal}, draining...`);
-  // Emit a server:shutdown event so clients can show a banner before disconnect.
+  logger.info({ signal }, 'shutdown received, draining');
   io.of('/game').emit('server:shutdown', { graceMs: 5000 });
-  // Allow 1s for the broadcast to flush.
   await new Promise((r) => setTimeout(r, 1000));
   await new Promise<void>((resolve) => io.close(() => resolve()));
   await new Promise<void>((resolve) => server.close(() => resolve()));
   await prisma.$disconnect();
-  // eslint-disable-next-line no-console
-  console.log('[shutdown] done');
+  logger.info('shutdown done');
   process.exit(0);
 }
 process.on('SIGTERM', () => void shutdown('SIGTERM'));

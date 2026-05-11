@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { env } from '../env.js';
+import { logger } from './logger.js';
 
 export const redis = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: 3,
@@ -7,6 +8,5 @@ export const redis = new Redis(env.REDIS_URL, {
 });
 
 redis.on('error', (err) => {
-  // eslint-disable-next-line no-console
-  console.error('[redis] error', err.message);
+  logger.error({ err: err.message }, 'redis error');
 });

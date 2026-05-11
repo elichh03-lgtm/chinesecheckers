@@ -24,6 +24,11 @@ export function Confetti({ onDone }: { onDone?: () => void }): JSX.Element {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // Honor prefers-reduced-motion: skip the burst entirely.
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      onDone?.();
+      return;
+    }
     const ctx = canvas.getContext('2d')!;
     const dpr = window.devicePixelRatio || 1;
     const w = window.innerWidth;

@@ -4,6 +4,9 @@ const Schema = z.object({
   PORT: z.coerce.number().default(3001),
   CLIENT_URL: z.string().default('http://localhost:5173'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+    .default('info'),
   JWT_SECRET: z.string().default('dev-secret-change-in-prod'),
   DATABASE_URL: z.string().default('file:./dev.db'),
   GOOGLE_CLIENT_ID: z.string().optional(),

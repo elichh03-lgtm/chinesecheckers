@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "analyze": "ANALYZE=1 tsc -b && ANALYZE=1 vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "echo 'no tests'",
@@ -16,19 +17,24 @@
     "@cc/shared-types": "workspace:*",
     "@sentry/react": "^7.118.0",
     "axios": "^1.7.2",
+    "i18next": "^26.1.0",
+    "i18next-browser-languagedetector": "^8.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-i18next": "^17.0.7",
     "react-router-dom": "^6.23.1",
     "socket.io-client": "^4.7.5",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.44.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
+    "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.4.5",
     "vite": "^5.2.11"

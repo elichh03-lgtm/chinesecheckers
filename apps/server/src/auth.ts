@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { env } from './env.js';
 import { prisma } from './lib/prisma.js';
+import { audit } from './lib/audit.js';
 
 /**
  * Auth primitives.
@@ -86,6 +87,11 @@ export async function rotateRefreshToken(
   if (record.revokedAt) {
     // Reuse of a revoked token => treat as compromise, revoke entire family.
     await revokeAllRefreshTokens(record.userId);
+    await audit({
+      userId: record.userId,
+      action: 'refresh.family_revoked',
+      metadata: { reason: 'reuse_of_revoked_token', tokenId: record.id },
+    });
     return null;
   }
   if (record.expiresAt.getTime() <= Date.now()) return null;

@@ -237,19 +237,20 @@ describe('password reset flow', () => {
     expect(reset).toBeTruthy();
     // The raw token is gone — we only have the hash. So we need to capture
     // it from console.log. Re-run forgot but intercept the log this time.
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const { JSON_OUTBOX_PATH } = await import('../lib/mailer.js');
+    const fs = await import('node:fs');
+    const before = fs.existsSync(JSON_OUTBOX_PATH)
+      ? fs.readFileSync(JSON_OUTBOX_PATH, 'utf8').length
+      : 0;
     const forgot2 = await fetch(`${baseUrl}/auth/forgot`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ username }),
     });
     expect(forgot2.status).toBe(200);
-    const logged = logSpy.mock.calls
-      .map((c) => String(c[0]))
-      .find((s) => s.startsWith('[mailer:json]'));
-    logSpy.mockRestore();
-    expect(logged).toBeTruthy();
-    const tokenMatch = logged!.match(/\/reset\?token=([^"\s\\]+)/);
+    const after = fs.readFileSync(JSON_OUTBOX_PATH, 'utf8');
+    const newContent = after.slice(before);
+    const tokenMatch = newContent.match(/\/reset\?token=([^"\s\\]+)/);
     expect(tokenMatch).toBeTruthy();
     const rawToken = decodeURIComponent(tokenMatch![1]!);
 

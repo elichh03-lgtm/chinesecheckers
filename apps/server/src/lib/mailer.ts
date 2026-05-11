@@ -2,6 +2,7 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { env, smtpConfigured } from '../env.js';
+import { logger } from './logger.js';
 
 export const JSON_OUTBOX_PATH =
   process.env.MAIL_JSON_OUTBOX ?? '.mail-outbox.jsonl';
@@ -79,8 +80,7 @@ export async function sendPasswordReset(args: PasswordResetArgs): Promise<void> 
 
   if (mode === 'json') {
     const message = info.message as string;
-    // eslint-disable-next-line no-console
-    console.log(`[mailer:json] ${message}`);
+    logger.info({ component: 'mailer', mode: 'json' }, message);
     try {
       mkdirSync(dirname(JSON_OUTBOX_PATH), { recursive: true });
     } catch {

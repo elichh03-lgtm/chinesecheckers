@@ -84,21 +84,29 @@ jobs:
       - name: Build web
         run: pnpm --filter web build
 
-      - name: Bundle size budget (250kb gzipped per chunk)
+      - name: Bundle size budget (250kb per chunk, 600kb total, gzipped)
         run: |
           set -euo pipefail
-          BUDGET=$((250 * 1024))
+          CHUNK_BUDGET=$((250 * 1024))
+          TOTAL_BUDGET=$((600 * 1024))
           fail=0
+          total=0
           shopt -s nullglob
           for f in apps/web/dist/assets/*.js apps/web/dist/assets/*.css; do
             size=$(gzip -c "$f" | wc -c | tr -d ' ')
-            if [ "$size" -gt "$BUDGET" ]; then
-              echo "FAIL: $f is ${size} bytes gzipped (>${BUDGET})"
+            total=$((total + size))
+            if [ "$size" -gt "$CHUNK_BUDGET" ]; then
+              echo "FAIL: $f is ${size} bytes gzipped (>${CHUNK_BUDGET})"
               fail=1
             else
               echo "ok:  $f is ${size} bytes gzipped"
             fi
           done
+          echo "total: ${total} bytes gzipped (budget ${TOTAL_BUDGET})"
+          if [ "$total" -gt "$TOTAL_BUDGET" ]; then
+            echo "FAIL: total bundle ${total} > ${TOTAL_BUDGET}"
+            fail=1
+          fi
           exit "$fail"
 
       - name: Install Playwright browsers

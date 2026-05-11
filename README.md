@@ -1,6 +1,6 @@
 # Chinese Checkers Online (Halma)
 
-[![CI](https://github.com/elichh03-lgtm/sight-web/actions/workflows/ci.yml/badge.svg)](https://github.com/elichh03-lgtm/sight-web/actions/workflows/ci.yml)
+[![CI](https://github.com/elichh03-lgtm/chinesecheckers/actions/workflows/ci.yml/badge.svg)](https://github.com/elichh03-lgtm/chinesecheckers/actions/workflows/ci.yml)
 
 Real-time multiplayer Chinese Checkers (Sternhalma). Bcrypt + JWT auth, rotating refresh tokens, CSP-hardened, Prisma-backed persistence for users, ELO, and completed games.
 

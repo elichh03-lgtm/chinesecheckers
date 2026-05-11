@@ -39,11 +39,14 @@ export function RingTimer({
   const t = Math.max(0, Math.min(1, remaining / totalMs));
   const offset = c * (1 - t);
   const danger = remaining <= 10_000;
+  const reduceMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const ringColor = danger ? '#FF5C5C' : (playerColor && COLOR[playerColor]) || '#7B8FFF';
 
   return (
     <div className="relative inline-flex items-center justify-center" aria-label={`${seconds} seconds remaining`}>
-      <svg width={size} height={size} className={danger ? 'animate-pulse-soft' : ''}>
+      <svg width={size} height={size} className={danger && !reduceMotion ? 'animate-pulse-soft' : ''}>
         <circle
           cx={size / 2}
           cy={size / 2}

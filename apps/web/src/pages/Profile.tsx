@@ -139,6 +139,7 @@ export function Profile(): JSX.Element {
             <img
               src={profile.avatarUrl}
               alt="avatar"
+              loading="lazy"
               className="w-16 h-16 rounded-full object-cover border border-line"
             />
           ) : (

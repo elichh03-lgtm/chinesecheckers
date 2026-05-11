@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { toast } from '@/stores/toast';
@@ -7,6 +8,7 @@ import { toast } from '@/stores/toast';
 type Mode = 'login' | 'register';
 
 export function Landing(): JSX.Element {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('register');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -19,12 +21,12 @@ export function Landing(): JSX.Element {
     try {
       const { data } = await api.get<{ enabled: boolean }>('/auth/google/check');
       if (!data.enabled) {
-        toast.warn('Google sign-in is not configured on this server.');
+        toast.warn(t('landing.googleNotConfigured'));
         return;
       }
       window.location.href = '/api/v1/auth/google';
     } catch {
-      toast.error('Could not start Google sign-in.');
+      toast.error(t('landing.googleStartFailed'));
     }
   }
 
@@ -40,18 +42,22 @@ export function Landing(): JSX.Element {
         username: data.user.username,
         token: data.token,
       });
-      toast.success(mode === 'register' ? `Welcome, ${data.user.username}!` : `Welcome back, ${data.user.username}!`);
+      toast.success(
+        mode === 'register'
+          ? t('landing.welcome', { username: data.user.username })
+          : t('landing.welcomeBack', { username: data.user.username }),
+      );
       navigate('/lobby');
     } catch (e2: unknown) {
       const msg = (() => {
         if (typeof e2 === 'object' && e2 !== null && 'response' in e2) {
           const resp = (e2 as { response?: { data?: { error?: string }; status?: number } }).response;
-          if (resp?.status === 409) return 'Username already taken.';
-          if (resp?.status === 401) return 'Invalid username or password.';
-          if (resp?.status === 429) return 'Too many attempts. Try again in a minute.';
+          if (resp?.status === 409) return t('landing.usernameTaken');
+          if (resp?.status === 401) return t('landing.invalidCredentials');
+          if (resp?.status === 429) return t('landing.tooManyAttempts');
           if (resp?.data?.error) return resp.data.error;
         }
-        return 'Something went wrong.';
+        return t('common.errorGeneric');
       })();
       setErr(msg);
     } finally {
@@ -68,9 +74,9 @@ export function Landing(): JSX.Element {
       <div className="relative w-full max-w-sm bg-panel/80 backdrop-blur rounded-2xl p-8 border border-line shadow-2xl animate-slide-up">
         <div className="flex items-center gap-2 mb-1">
           <Star className="w-7 h-7 text-accent" />
-          <h1 className="font-display text-3xl font-bold tracking-tight">Halma</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight">{t('app.name')}</h1>
         </div>
-        <p className="text-muted text-sm mb-6">Real-time Chinese Checkers. Play live, climb the ladder.</p>
+        <p className="text-muted text-sm mb-6">{t('app.tagline')}</p>
 
         <div className="flex gap-1 mb-5 p-1 bg-canvas rounded-lg text-sm">
           {(['register', 'login'] as const).map((m) => (
@@ -84,7 +90,7 @@ export function Landing(): JSX.Element {
                   : 'text-muted hover:text-text'
               }`}
             >
-              {m === 'register' ? 'Sign up' : 'Log in'}
+              {m === 'register' ? t('common.signUp') : t('common.logIn')}
             </button>
           ))}
         </div>
@@ -92,7 +98,7 @@ export function Landing(): JSX.Element {
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-xs font-medium uppercase tracking-wider text-muted mb-1.5">
-              Username
+              {t('common.username')}
             </label>
             <input
               id="username"
@@ -100,7 +106,7 @@ export function Landing(): JSX.Element {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full bg-canvas border border-line rounded-md px-3 py-2.5 text-text placeholder:text-muted/60 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition"
-              placeholder="2–20 chars · letters/numbers/_"
+              placeholder={t('landing.usernamePlaceholder')}
               minLength={2}
               maxLength={20}
               pattern="[a-zA-Z0-9_]+"
@@ -110,7 +116,7 @@ export function Landing(): JSX.Element {
           </div>
           <div>
             <label htmlFor="password" className="block text-xs font-medium uppercase tracking-wider text-muted mb-1.5">
-              Password
+              {t('common.password')}
             </label>
             <input
               id="password"
@@ -119,7 +125,7 @@ export function Landing(): JSX.Element {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-canvas border border-line rounded-md px-3 py-2.5 text-text placeholder:text-muted/60 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition"
-              placeholder="At least 8 characters"
+              placeholder={t('landing.passwordPlaceholder')}
               minLength={8}
               maxLength={100}
               autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
@@ -137,12 +143,12 @@ export function Landing(): JSX.Element {
             disabled={busy}
             className="w-full bg-accent hover:bg-accent/90 disabled:opacity-60 disabled:cursor-not-allowed text-ink font-semibold py-2.5 rounded-md transition shadow-sm"
           >
-            {busy ? '...' : mode === 'register' ? 'Create account' : 'Log in'}
+            {busy ? '...' : mode === 'register' ? t('common.createAccount') : t('common.logIn')}
           </button>
           {mode === 'login' && (
             <p className="text-xs text-muted text-center">
               <Link to="/forgot" data-testid="forgot-password-link" className="hover:text-text underline">
-                Forgot password?
+                {t('landing.forgotPassword')}
               </Link>
             </p>
           )}
@@ -150,7 +156,7 @@ export function Landing(): JSX.Element {
 
         <div className="my-5 flex items-center gap-3 text-xs text-muted">
           <span className="flex-1 h-px bg-line" />
-          OR
+          {t('common.or')}
           <span className="flex-1 h-px bg-line" />
         </div>
 
@@ -161,13 +167,11 @@ export function Landing(): JSX.Element {
           className="w-full flex items-center justify-center gap-2 bg-canvas hover:bg-canvas/70 border border-line text-text font-medium py-2.5 rounded-md transition"
         >
           <GoogleIcon className="w-5 h-5" />
-          Continue with Google
+          {t('landing.continueWithGoogle')}
         </button>
 
         <p className="text-xs text-muted text-center mt-6">
-          {mode === 'register'
-            ? 'No email required. Just pick a name and start playing.'
-            : 'Welcome back. Pick up where you left off.'}
+          {mode === 'register' ? t('landing.registerHint') : t('landing.loginHint')}
         </p>
       </div>
     </div>

@@ -164,7 +164,7 @@ export function EditProfile(): JSX.Element {
             >
               <div className="w-20 h-20 rounded-full bg-canvas border border-line overflow-hidden flex items-center justify-center text-muted">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                  <img src={avatarUrl} alt="avatar" loading="lazy" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-2xl">@</span>
                 )}

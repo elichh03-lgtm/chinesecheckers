@@ -33,6 +33,7 @@ export type RenderState = {
   now: number;
   size: number;
   origin: Pixel;
+  reduceMotion?: boolean;
 };
 
 const TRANSIENT_DURATION = 1200;
@@ -70,9 +71,9 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState): void 
     ctx.stroke();
   }
 
-  // Valid destination overlays (pulsing dots)
+  // Valid destination overlays (pulsing dots — static when reduced motion)
   if (state.validDestinations.size > 0) {
-    const pulse = 0.5 + 0.5 * Math.sin(state.now / 200);
+    const pulse = state.reduceMotion ? 0.85 : 0.5 + 0.5 * Math.sin(state.now / 200);
     for (const k of state.validDestinations) {
       const cell = parseKey(k);
       const p = hexToPixel(cell, size, origin);
@@ -141,33 +142,38 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState): void 
   if (state.selected) {
     const p = hexToPixel(state.selected, size, origin);
     ctx.beginPath();
-    const ringR = size * 0.5 + 2 * Math.sin(state.now / 160);
+    const ringR = size * 0.5 + (state.reduceMotion ? 0 : 2 * Math.sin(state.now / 160));
     ctx.arc(p.x, p.y, ringR, 0, Math.PI * 2);
     ctx.strokeStyle = '#7B8FFF';
     ctx.lineWidth = 3;
     ctx.stroke();
   }
 
-  // Animating marble
+  // Animating marble — snap to destination when reduced motion is preferred.
   if (state.animatingMove) {
     const m = state.animatingMove;
-    const elapsed = state.now - m.startedAt;
-    const t = Math.min(1, elapsed / m.duration);
-    const segCount = m.path.length - 1;
-    const segIdx = Math.min(segCount - 1, Math.floor(t * segCount));
-    const localT = t * segCount - segIdx;
-    const a = m.path[segIdx]!;
-    const b = m.path[segIdx + 1]!;
-    const pa = hexToPixel(a, size, origin);
-    const pb = hexToPixel(b, size, origin);
-    const ease = 0.5 - 0.5 * Math.cos(localT * Math.PI);
-    const x = pa.x + (pb.x - pa.x) * ease;
-    const y = pa.y + (pb.y - pa.y) * ease - 20 * Math.sin(localT * Math.PI); // arc up
     const lastCell = m.path[m.path.length - 1]!;
     const lastKey = key(lastCell);
     const marble = state.board.get(lastKey);
     if (marble) {
-      drawMarble(ctx, { x, y }, size * 0.42, COLOR_HEX[marble.color]);
+      if (state.reduceMotion) {
+        const pEnd = hexToPixel(lastCell, size, origin);
+        drawMarble(ctx, pEnd, size * 0.42, COLOR_HEX[marble.color]);
+      } else {
+        const elapsed = state.now - m.startedAt;
+        const t = Math.min(1, elapsed / m.duration);
+        const segCount = m.path.length - 1;
+        const segIdx = Math.min(segCount - 1, Math.floor(t * segCount));
+        const localT = t * segCount - segIdx;
+        const a = m.path[segIdx]!;
+        const b = m.path[segIdx + 1]!;
+        const pa = hexToPixel(a, size, origin);
+        const pb = hexToPixel(b, size, origin);
+        const ease = 0.5 - 0.5 * Math.cos(localT * Math.PI);
+        const x = pa.x + (pb.x - pa.x) * ease;
+        const y = pa.y + (pb.y - pa.y) * ease - 20 * Math.sin(localT * Math.PI);
+        drawMarble(ctx, { x, y }, size * 0.42, COLOR_HEX[marble.color]);
+      }
     }
   }
 }

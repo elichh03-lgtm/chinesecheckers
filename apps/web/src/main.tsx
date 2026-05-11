@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 import App from './App';
+import './i18n';
 import './styles.css';
 
 if (import.meta.env.VITE_SENTRY_DSN) {

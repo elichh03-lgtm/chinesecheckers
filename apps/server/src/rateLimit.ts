@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 import { nanoid } from 'nanoid';
 import { redis } from './lib/redis.js';
+import { logger } from './lib/logger.js';
 
 /**
  * Sliding-window rate limiter backed by a Redis sorted set. Survives restarts
@@ -47,8 +48,7 @@ export function rateLimit({
       .catch((err) => {
         // Fail-open on Redis errors — better to let the request through than
         // 500 the user out of the site when Redis blips.
-        // eslint-disable-next-line no-console
-        console.error('[rateLimit] redis error, falling open', err);
+        logger.error({ err, bucket }, 'rateLimit redis error, falling open');
         next();
       });
   };

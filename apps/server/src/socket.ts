@@ -33,8 +33,12 @@ import {
   type Room,
 } from './store.js';
 import { redis } from './lib/redis.js';
+import { logger } from './lib/logger.js';
 import { verifyToken } from './auth.js';
 import { persistCompletedGame } from './persistGame.js';
+import * as Sentry from '@sentry/node';
+
+const socketLogger = logger.child({ component: 'socket' });
 
 const COMPLETED_ROOM_TTL_MS = 60_000;
 const IDLE_ROOM_TTL_MS = 30 * 60_000; // waiting rooms with no activity for 30 min
@@ -113,8 +117,7 @@ export function attachSocket(httpServer: HttpServer): IOServer {
     setInterval(() => {
       void sweepIdleRooms(IDLE_ROOM_TTL_MS).then((evicted) => {
         if (evicted.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log(`[idle-sweep] evicted ${evicted.length} stale waiting rooms`);
+          socketLogger.info({ evicted: evicted.length }, 'idle-sweep evicted stale waiting rooms');
         }
       });
     }, IDLE_SWEEP_INTERVAL_MS).unref();
@@ -126,8 +129,8 @@ export function attachSocket(httpServer: HttpServer): IOServer {
   // mean past entries fire immediately.
   if (env.NODE_ENV !== 'test') {
     void recoverTurnTimers(io).catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error('[turn-timer] recovery failed', err);
+      socketLogger.error({ err }, 'turn-timer recovery failed');
+      Sentry.captureException(err);
     });
   }
 
@@ -237,8 +240,15 @@ export function attachSocket(httpServer: HttpServer): IOServer {
     s.on(SOCKET_EVENTS.GAME_MOVE_ATTEMPT, async (raw): Promise<void> => {
       const parsed = MoveAttemptSchema.safeParse(raw);
       if (!parsed.success) {
-        // eslint-disable-next-line no-console
-        console.warn('[invalid-payload] game:move_attempt', JSON.stringify(parsed.error.flatten()));
+        socketLogger.warn(
+          {
+            event: 'game:move_attempt',
+            errors: parsed.error.flatten(),
+            userId: s.data.userId,
+            requestId: nanoid(12),
+          },
+          'invalid socket payload',
+        );
         s.emit(SOCKET_EVENTS.ERROR, { code: 'INVALID_PAYLOAD' });
         return;
       }
@@ -470,8 +480,8 @@ async function emitGameOver(
       moveLog: room.moveLog,
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('persistCompletedGame failed', err);
+    socketLogger.error({ err, gameId }, 'persistCompletedGame failed');
+    Sentry.captureException(err);
     const finishedIds = new Set(fullState.finishedPlayers.map((p) => p.userId));
     const trailing = fullState.turnOrder.filter((id) => !finishedIds.has(id));
     finishOrder = [
@@ -506,8 +516,7 @@ function scheduleTurnTimer(io: IOServer, room: Room): void {
 
   const endsAt = room.state?.timerEndsAt ?? Date.now() + room.timer * 1000;
   void redis.zadd(TURN_DEADLINES_KEY, endsAt, gameId).catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error('[turn-timer] zadd failed', err);
+    socketLogger.error({ err, gameId }, 'turn-timer zadd failed');
   });
 
   const tick = async (): Promise<void> => {
@@ -535,8 +544,7 @@ function clearTurnTimer(gameId: string): void {
   if (t) clearTimeout(t);
   turnTimerHandles.delete(gameId);
   void redis.zrem(TURN_DEADLINES_KEY, gameId).catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error('[turn-timer] zrem failed', err);
+    socketLogger.error({ err, gameId }, 'turn-timer zrem failed');
   });
 }
 
