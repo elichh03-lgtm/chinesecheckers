@@ -1,0 +1,155 @@
+// Postgres backing per Phase 9. JSON columns are real `Json` (jsonb) so the
+// move log and game settings can be queried instead of being opaque text blobs.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String?  @unique
+  passwordHash String?
+  googleId     String?  @unique
+  avatarUrl    String?
+  countryCode  String?
+  isGuest      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  lastSeenAt   DateTime @default(now())
+
+  eloRatings    EloRating[]
+  gamePlayers   GamePlayer[]
+  eloHistory    EloHistory[]
+  chatMessages  ChatMessage[]
+  refreshTokens RefreshToken[]
+  passwordResets PasswordReset[]
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordReset {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model EloRating {
+  id          String @id @default(cuid())
+  userId      String
+  mode        String // '2p' | 'multi'
+  rating      Int    @default(1200)
+  gamesPlayed Int    @default(0)
+  wins        Int    @default(0)
+  losses      Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mode])
+}
+
+model Game {
+  id          String    @id @default(cuid())
+  mode        String // 'casual' | 'ranked' | 'custom'
+  playerCount Int
+  status      String    @default("waiting")
+  settings    Json      @default("{}")
+  inviteCode  String?   @unique
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime  @default(now())
+
+  players     GamePlayer[]
+  moves       Move[]
+  chatMessages ChatMessage[]
+  eloHistory  EloHistory[]
+}
+
+model GamePlayer {
+  id        String @id @default(cuid())
+  gameId    String
+  userId    String
+  color     String
+  homePoint Int
+  seatOrder Int
+  finishPos Int?
+  eloBefore Int?
+  eloAfter  Int?
+  eloDelta  Int?
+
+  game  Game  @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+  moves Move[]
+
+  @@unique([gameId, color])
+  @@unique([gameId, homePoint])
+}
+
+model Move {
+  id         String   @id @default(cuid())
+  gameId     String
+  playerId   String
+  moveNumber Int
+  fromQ      Int
+  fromR      Int
+  toQ        Int
+  toR        Int
+  path       Json
+  isTimeout  Boolean  @default(false)
+  timestamp  DateTime @default(now())
+
+  game   Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player GamePlayer @relation(fields: [playerId], references: [id])
+
+  @@unique([gameId, moveNumber])
+}
+
+model EloHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  gameId       String
+  mode         String
+  ratingBefore Int
+  ratingAfter  Int
+  delta        Int
+  recordedAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id])
+}
+
+model ChatMessage {
+  id          String   @id @default(cuid())
+  gameId      String
+  userId      String?
+  isSpectator Boolean  @default(false)
+  messageType String   @default("text") // 'text' | 'emote' | 'system'
+  content     String
+  sentAt      DateTime @default(now())
+
+  game Game  @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id])
+}

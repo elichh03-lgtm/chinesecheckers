@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chinese Checkers — Wireframes</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --white:   #ffffff;
+  --bg:      #f4f4f4;
+  --line:    #d0d0d0;
+  --box:     #e8e8e8;
+  --dark:    #222222;
+  --muted:   #888888;
+  --accent:  #222222;
+  --label:   11px;
+}
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--dark);
+  display: flex;
+  min-height: 100vh;
+  font-size: 13px;
+}
+
+/* ── Sidebar ── */
+#nav {
+  width: 180px;
+  min-width: 180px;
+  background: var(--white);
+  border-right: 1px solid var(--line);
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+#nav .logo {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.nav-item {
+  padding: 8px 20px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-item:hover { color: var(--dark); }
+.nav-item.active { color: var(--dark); border-left-color: var(--dark); font-weight: 600; }
+.nav-num { font-size: 10px; color: var(--line); width: 16px; }
+
+/* ── Main ── */
+#main { flex: 1; overflow-y: auto; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── Screen header ── */
+.sh {
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+  padding: 18px 32px;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+.sh-num { font-size: 11px; color: var(--muted); min-width: 54px; }
+.sh-title { font-size: 15px; font-weight: 700; }
+.sh-desc { font-size: 11px; color: var(--muted); margin-left: auto; max-width: 340px; text-align: right; line-height: 1.5; }
+
+/* ── Screen body ── */
+.sb { padding: 28px 32px; }
+
+/* ── Wireframe primitives ── */
+.wf-bar {
+  height: 44px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 24px;
+  margin-bottom: 1px;
+}
+.wf-logo { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+.sphere {
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, #fff 0%, #aaa 50%, #333 100%);
+  display: inline-block;
+  flex-shrink: 0;
+}
+.sphere-sm  { width: 14px; height: 14px; }
+.sphere-md  { width: 18px; height: 18px; }
+.sphere-lg  { width: 52px; height: 52px; }
+.wf-link { font-size: 11px; color: var(--muted); }
+.wf-spacer { flex: 1; }
+.wf-btn {
+  border: 1px solid var(--line);
+  padding: 5px 14px;
+  font-size: 11px;
+  border-radius: 3px;
+  background: var(--white);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wf-btn-fill {
+  border: 1px solid var(--dark);
+  background: var(--dark);
+  color: var(--white);
+  padding: 5px 14px;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wf-input {
+  border: 1px solid var(--line);
+  height: 32px;
+  padding: 0 10px;
+  font-size: 11px;
+  border-radius: 3px;
+  background: var(--white);
+  color: var(--muted);
+}
+.wf-input-full { width: 100%; }
+.wf-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; display: block; }
+.wf-fg { margin-bottom: 14px; }
+.wf-select {
+  border: 1px solid var(--line);
+  height: 32px;
+  padding: 0 10px;
+  font-size: 11px;
+  border-radius: 3px;
+  background: var(--white);
+  width: 100%;
+  color: var(--dark);
+}
+.wf-box {
+  border: 1px solid var(--line);
+  background: var(--white);
+  border-radius: 4px;
+  padding: 16px;
+}
+.wf-row { display: flex; gap: 12px; }
+.wf-col { flex: 1; }
+.wf-tag {
+  display: inline-block;
+  border: 1px solid var(--line);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  color: var(--muted);
+}
+.wf-tag-fill {
+  display: inline-block;
+  border: 1px solid var(--dark);
+  background: var(--dark);
+  color: var(--white);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+.wf-divider { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
+.wf-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; }
+.wf-placeholder {
+  background: var(--box);
+  border: 1px dashed var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--muted);
+  border-radius: 3px;
+}
+.wf-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--box);
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.wf-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--box); border: 1px solid var(--line); display: inline-block; flex-shrink: 0; }
+.wf-dot-fill { width: 10px; height: 10px; border-radius: 50%; background: var(--dark); border: 1px solid var(--dark); display: inline-block; flex-shrink: 0; }
+.wf-marble { width: 14px; height: 14px; border-radius: 50%; background: var(--box); border: 1px solid var(--muted); display: inline-block; flex-shrink: 0; }
+
+/* table */
+.wf-table { width: 100%; border-collapse: collapse; }
+.wf-table th { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+.wf-table td { padding: 9px 10px; border-bottom: 1px solid var(--box); font-size: 12px; vertical-align: middle; }
+
+/* toggle */
+.wf-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--box); }
+.wf-toggle { width: 32px; height: 16px; border-radius: 8px; background: var(--box); border: 1px solid var(--line); position: relative; flex-shrink: 0; }
+.wf-toggle.on { background: var(--dark); border-color: var(--dark); }
+.wf-toggle::after { content:''; width: 12px; height: 12px; border-radius: 50%; background: var(--white); position: absolute; top: 1px; left: 1px; }
+.wf-toggle.on::after { left: 17px; }
+
+/* grid helpers */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+
+/* annotation */
+.note {
+  display: none;
+  background: #fffbe6;
+  border: 1px solid #e8d860;
+  border-radius: 3px;
+  font-size: 11px;
+  padding: 6px 10px;
+  color: #555;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.notes-on .note { display: block; }
+
+/* flow arrows between sections */
+.flow-arrow { text-align: center; font-size: 11px; color: var(--muted); padding: 6px 0; }
+
+/* Board placeholder */
+.board-placeholder {
+  width: 260px; height: 260px;
+  position: relative;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav id="nav">
+  <div class="logo" style="display:flex; align-items:center; gap:8px;"><span class="sphere sphere-md"></span><span>CC Online<br>Wireframes</span></div>
+
+  <div class="nav-item active" onclick="go('landing')" data-s="landing"><span class="nav-num">01</span> Landing</div>
+  <div class="nav-item" onclick="go('lobby')" data-s="lobby"><span class="nav-num">02</span> Lobby</div>
+  <div class="nav-item" onclick="go('create')" data-s="create"><span class="nav-num">03</span> Create Room</div>
+  <div class="nav-item" onclick="go('pregame')" data-s="pregame"><span class="nav-num">04</span> Pre-Game</div>
+  <div class="nav-item" onclick="go('game')" data-s="game"><span class="nav-num">05</span> Game Board</div>
+  <div class="nav-item" onclick="go('spectator')" data-s="spectator"><span class="nav-num">06</span> Spectator</div>
+  <div class="nav-item" onclick="go('postgame')" data-s="postgame"><span class="nav-num">07</span> Post-Game</div>
+  <div class="nav-item" onclick="go('profile')" data-s="profile"><span class="nav-num">08</span> Profile</div>
+
+  <div style="margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--line);">
+    <label style="font-size:11px; color:var(--muted); display:flex; align-items:center; gap:6px; cursor:pointer;">
+      <input type="checkbox" id="ann-toggle" onchange="toggleNotes(this)"> Show notes
+    </label>
+  </div>
+</nav>
+
+<!-- Main -->
+<main id="main">
+
+<!-- ══ 01 LANDING ══ -->
+<section class="screen active" id="screen-landing">
+  <div class="sh">
+    <span class="sh-num">01 / 08</span>
+    <span class="sh-title">Landing</span>
+    <span class="sh-desc">Entry point. One-click guest play, sign-in for ranked.</span>
+  </div>
+  <div class="sb">
+
+    <!-- Navbar -->
+    <div class="wf-bar">
+      <div class="wf-logo"><span class="sphere sphere-sm"></span> Chinese Checkers</div>
+      <div class="wf-spacer"></div>
+      <div class="wf-link">Leaderboard</div>
+      <div class="wf-link">How to Play</div>
+      <div class="wf-btn">Sign In</div>
+      <div class="wf-btn-fill">Register</div>
+    </div>
+    <div class="note">Logged-in state: replace Sign In / Register with avatar + username dropdown.</div>
+
+    <!-- Hero -->
+    <div class="wf-box" style="text-align:center; padding: 48px 24px; margin-top: 12px;">
+      <div style="margin-bottom: 18px;"><span class="sphere sphere-lg"></span></div>
+      <div style="font-size: 24px; font-weight: 700; margin-bottom: 10px;">Chinese Checkers Online</div>
+      <div style="font-size: 12px; color: var(--muted); max-width: 380px; margin: 0 auto 24px; line-height:1.6;">2–6 player marble strategy. No download. Play as a guest or sign in for ranked.</div>
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <div class="wf-btn-fill" style="padding: 10px 28px; font-size:13px;" onclick="go('lobby')">▶ Play Now</div>
+        <div class="wf-btn" style="padding: 10px 28px; font-size:13px;">Ranked Play</div>
+      </div>
+    </div>
+    <div class="note">Play Now → Lobby (guest). Ranked Play → prompts sign-in if not authenticated.</div>
+
+    <!-- Stats row -->
+    <div class="grid-3" style="margin-top:12px;">
+      <div class="wf-box" style="text-align:center;">
+        <div style="font-size:20px; font-weight:700;">1,240</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">Online Now</div>
+      </div>
+      <div class="wf-box" style="text-align:center;">
+        <div style="font-size:20px; font-weight:700;">847</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">Active Games</div>
+      </div>
+      <div class="wf-box" style="text-align:center;">
+        <div style="font-size:20px; font-weight:700;">3.2M</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">Games Played</div>
+      </div>
+    </div>
+
+    <!-- Feature row -->
+    <div class="grid-3" style="margin-top:12px;">
+      <div class="wf-box">
+        <div style="font-size:18px; margin-bottom:8px;">⚡</div>
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Real-time Multiplayer</div>
+        <div style="font-size:11px; color:var(--muted); line-height:1.5;">WebSocket-powered. Moves appear instantly.</div>
+      </div>
+      <div class="wf-box">
+        <div style="font-size:18px; margin-bottom:8px;">🏆</div>
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">ELO Ranking</div>
+        <div style="font-size:11px; color:var(--muted); line-height:1.5;">Six tiers. Compete and climb the ladder.</div>
+      </div>
+      <div class="wf-box">
+        <div style="font-size:18px; margin-bottom:8px;">🎬</div>
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Game Replays</div>
+        <div style="font-size:11px; color:var(--muted); line-height:1.5;">Every game saved. Shareable replay links.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ 02 LOBBY ══ -->
+<section class="screen" id="screen-lobby">
+  <div class="sh">
+    <span class="sh-num">02 / 08</span>
+    <span class="sh-title">Lobby</span>
+    <span class="sh-desc">Matchmaking, room browser, invite code entry, create room.</span>
+  </div>
+  <div class="sb">
+    <div class="wf-bar" style="margin-bottom:12px;">
+      <div class="wf-logo"><span class="sphere sphere-sm"></span> Chinese Checkers</div>
+      <div class="wf-spacer"></div>
+      <div class="wf-avatar">E</div>
+      <div style="font-size:12px;">eli_chh03 ▾</div>
+    </div>
+
+    <div class="wf-row">
+
+      <!-- Left sidebar -->
+      <div style="width:220px; flex-shrink:0; display:flex; flex-direction:column; gap:12px;">
+
+        <div class="wf-box">
+          <div class="wf-section-title">Ranked Matchmaking</div>
+          <div style="display:flex; gap:6px; margin-bottom:10px;">
+            <div class="wf-btn" style="flex:1; text-align:center;">2P</div>
+            <div class="wf-btn-fill" style="flex:1; text-align:center;">Multi</div>
+          </div>
+          <div class="wf-btn-fill" style="width:100%; text-align:center; padding: 8px 0;">Join Queue</div>
+          <div style="font-size:10px; color:var(--muted); margin-top:8px;">Avg. wait ~45s · 83 queued</div>
+        </div>
+
+        <div class="wf-box">
+          <div class="wf-section-title">Quick Play (Casual)</div>
+          <div class="wf-btn" style="width:100%; text-align:center; padding: 8px 0;">Quick Join</div>
+        </div>
+
+        <div class="wf-box">
+          <div class="wf-section-title">Private Room</div>
+          <div class="wf-fg">
+            <input class="wf-input wf-input-full" placeholder="Invite code" />
+          </div>
+          <div class="wf-btn" style="width:100%; text-align:center;">Join →</div>
+        </div>
+
+        <div class="wf-btn-fill" style="text-align:center; padding:10px 0; cursor:pointer;" onclick="go('create')">+ Create Room</div>
+
+      </div>
+
+      <!-- Right: room table -->
+      <div class="wf-col">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <div style="font-size:13px; font-weight:600;">Public Rooms <span style="color:var(--muted); font-weight:400;">(23 open)</span></div>
+          <div style="display:flex; gap:6px;">
+            <span class="wf-tag-fill">All</span>
+            <span class="wf-tag">2P</span>
+            <span class="wf-tag">4P</span>
+            <span class="wf-tag">6P</span>
+            <div class="wf-btn">↻ Refresh</div>
+          </div>
+        </div>
+        <div class="wf-box" style="padding:0; overflow:hidden;">
+          <table class="wf-table">
+            <thead>
+              <tr>
+                <th>Room</th>
+                <th>Players</th>
+                <th>Timer</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div style="font-weight:600;">Marble Madness</div>
+                  <div style="font-size:10px; color:var(--muted);">by tealmarble92</div>
+                </td>
+                <td>
+                  <div style="display:flex; gap:3px; align-items:center;">
+                    <div class="wf-dot-fill"></div><div class="wf-dot-fill"></div><div class="wf-dot"></div><div class="wf-dot"></div>
+                    <span style="font-size:10px; color:var(--muted); margin-left:4px;">2/4</span>
+                  </div>
+                </td>
+                <td><span class="wf-tag">60s</span></td>
+                <td><div class="wf-btn-fill" onclick="go('pregame')">Join</div></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="font-weight:600;">Beginner Friendly</div>
+                  <div style="font-size:10px; color:var(--muted);">by ruby_star</div>
+                </td>
+                <td>
+                  <div style="display:flex; gap:3px; align-items:center;">
+                    <div class="wf-dot-fill"></div><div class="wf-dot"></div>
+                    <span style="font-size:10px; color:var(--muted); margin-left:4px;">1/2</span>
+                  </div>
+                </td>
+                <td><span class="wf-tag">90s</span></td>
+                <td><div class="wf-btn-fill" onclick="go('pregame')">Join</div></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="font-weight:600;">6P Full Board</div>
+                  <div style="font-size:10px; color:var(--muted);">by violet_cross</div>
+                </td>
+                <td>
+                  <div style="display:flex; gap:3px; align-items:center;">
+                    <div class="wf-dot-fill"></div><div class="wf-dot-fill"></div><div class="wf-dot-fill"></div><div class="wf-dot-fill"></div><div class="wf-dot"></div><div class="wf-dot"></div>
+                    <span style="font-size:10px; color:var(--muted); margin-left:4px;">4/6</span>
+                  </div>
+                </td>
+                <td><span class="wf-tag">45s</span></td>
+                <td><div class="wf-btn-fill" onclick="go('pregame')">Join</div></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="font-weight:600;">No Timer Practice</div>
+                  <div style="font-size:10px; color:var(--muted);">by jade_hopper</div>
+                </td>
+                <td>
+                  <div style="display:flex; gap:3px; align-items:center;">
+                    <div class="wf-dot-fill"></div><div class="wf-dot-fill"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
+                    <span style="font-size:10px; color:var(--muted); margin-left:4px;">2/6</span>
+                  </div>
+                </td>
+                <td><span class="wf-tag">Off</span></td>
+                <td><div class="wf-btn-fill" onclick="go('pregame')">Join</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="text-align:center; margin-top:10px; font-size:11px; color:var(--muted);">19 more rooms ↓</div>
+        <div class="note">Rooms auto-refresh every 10 seconds. Row click also joins.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ 03 CREATE ROOM ══ -->
+<section class="screen" id="screen-create">
+  <div class="sh">
+    <span class="sh-num">03 / 08</span>
+    <span class="sh-title">Create Room</span>
+    <span class="sh-desc">Modal over Lobby. On submit → Pre-Game Room.</span>
+  </div>
+  <div class="sb">
+
+    <!-- Dimmed lobby hint -->
+    <div style="font-size:11px; color:var(--muted); margin-bottom:12px;">[ Lobby dimmed behind modal ]</div>
+
+    <div style="max-width:440px; margin:0 auto;">
+      <div class="wf-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+          <div style="font-size:14px; font-weight:700;">Create a Room</div>
+          <div class="wf-btn">✕</div>
+        </div>
+
+        <div class="wf-fg">
+          <label class="wf-label">Room Name</label>
+          <input class="wf-input wf-input-full" value="My Marble Room" />
+        </div>
+
+        <div class="wf-fg">
+          <label class="wf-label">Players</label>
+          <div class="grid-4">
+            <div class="wf-btn" style="text-align:center; padding:10px 0;">2</div>
+            <div class="wf-btn" style="text-align:center; padding:10px 0;">3</div>
+            <div class="wf-btn-fill" style="text-align:center; padding:10px 0;">4 ✓</div>
+            <div class="wf-btn" style="text-align:center; padding:10px 0;">6</div>
+          </div>
+        </div>
+        <div class="note">Default is 4. 5P is not a valid Chinese Checkers configuration.</div>
+
+        <div class="wf-fg">
+          <label class="wf-label">Turn Timer</label>
+          <select class="wf-select">
+            <option>60 seconds (default)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div class="wf-toggle-row">
+            <span style="font-size:12px;">Public Room</span>
+            <div class="wf-toggle"></div>
+          </div>
+          <div class="wf-toggle-row">
+            <span style="font-size:12px;">Allow Spectators</span>
+            <div class="wf-toggle on"></div>
+          </div>
+          <div class="wf-toggle-row" style="border-bottom:none;">
+            <span style="font-size:12px;">Blocking Rule</span>
+            <div class="wf-toggle on"></div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--line);">
+          <div class="wf-btn" onclick="go('lobby')">Cancel</div>
+          <div class="wf-btn-fill" onclick="go('pregame')">Create →</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ 04 PRE-GAME ══ -->
+<section class="screen" id="screen-pregame">
+  <div class="sh">
+    <span class="sh-num">04 / 08</span>
+    <span class="sh-title">Pre-Game Room</span>
+    <span class="sh-desc">Players gather. Host starts when ≥ 2 players are present.</span>
+  </div>
+  <div class="sb">
+    <div class="wf-row" style="gap:20px; align-items:flex-start;">
+
+      <!-- Left -->
+      <div class="wf-col">
+        <div class="wf-box" style="margin-bottom:12px;">
+          <div class="wf-section-title">Players (3 / 4)</div>
+
+          <!-- Slot rows -->
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid var(--line); border-radius:3px;">
+              <div class="wf-dot-fill" style="width:12px;height:12px;"></div>
+              <div class="wf-avatar">R</div>
+              <div>
+                <div style="font-size:12px; font-weight:600;">ruby_star</div>
+                <div style="font-size:10px; color:var(--muted);">Amber · 1612</div>
+              </div>
+              <span class="wf-tag" style="margin-left:auto;">HOST</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid var(--line); border-radius:3px;">
+              <div class="wf-dot" style="width:12px;height:12px;"></div>
+              <div class="wf-avatar">J</div>
+              <div>
+                <div style="font-size:12px; font-weight:600;">jade_hopper</div>
+                <div style="font-size:10px; color:var(--muted);">Coral · 1388</div>
+              </div>
+              <span class="wf-tag-fill" style="margin-left:auto;">Ready</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px solid var(--line); border-radius:3px;">
+              <div class="wf-dot" style="width:12px;height:12px;"></div>
+              <div class="wf-avatar">T</div>
+              <div>
+                <div style="font-size:12px; font-weight:600;">tealmarble92</div>
+                <div style="font-size:10px; color:var(--muted);">Coral · 1245</div>
+              </div>
+              <span class="wf-tag" style="margin-left:auto;">Not Ready</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; padding:8px; border:1px dashed var(--line); border-radius:3px; opacity:.5;">
+              <div class="wf-dot" style="width:12px;height:12px;"></div>
+              <div class="wf-avatar" style="opacity:.4;">?</div>
+              <div style="font-size:12px; color:var(--muted);">Waiting for player…</div>
+            </div>
+          </div>
+        </div>
+        <div class="note">Color dots are auto-assigned. Players can click their dot to cycle available colors.</div>
+
+        <div class="wf-btn-fill" style="width:100%; text-align:center; padding:12px 0; font-size:13px; cursor:pointer;" onclick="go('game')">▶ Start Game</div>
+        <div style="font-size:10px; color:var(--muted); text-align:center; margin-top:6px;">Host only · available with ≥ 2 players</div>
+      </div>
+
+      <!-- Right -->
+      <div style="width:280px; flex-shrink:0; display:flex; flex-direction:column; gap:12px;">
+        <div class="wf-box" style="text-align:center;">
+          <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px;">Invite Code</div>
+          <div style="font-size:28px; font-weight:800; letter-spacing:.2em;">XK4F2Q</div>
+          <div style="display:flex; gap:8px; justify-content:center; margin-top:10px;">
+            <div class="wf-btn">📋 Copy Code</div>
+            <div class="wf-btn">🔗 Copy Link</div>
+          </div>
+        </div>
+
+        <div class="wf-box">
+          <div class="wf-section-title">Settings</div>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">Players</span><span>4</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">Timer</span><span>60s</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">Spectators</span><span>Allowed</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">Visibility</span><span>Private</span></div>
+          </div>
+        </div>
+
+        <div class="wf-box">
+          <div class="wf-section-title">Chat</div>
+          <div style="font-size:12px; color:var(--muted); min-height:60px; margin-bottom:10px; line-height:1.8;">
+            <b style="color:var(--dark);">ruby_star:</b> Hey, starting in a min!<br>
+            <b style="color:var(--dark);">jade_hopper:</b> 👍 ready<br>
+            <b style="color:var(--dark);">tealmarble92:</b> one sec
+          </div>
+          <div style="display:flex; gap:6px;">
+            <input class="wf-input" style="flex:1;" placeholder="Message…" />
+            <div class="wf-btn-fill">→</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ 05 GAME BOARD ══ -->
+<section class="screen" id="screen-game">
+  <div class="sh">
+    <span class="sh-num">05 / 08</span>
+    <span class="sh-title">Game Board</span>
+    <span class="sh-desc">Board fills left area. Player list, timer, chat in right panel.</span>
+  </div>
+  <div class="sb" style="padding:0;">
+    <div style="display:flex; height: calc(100vh - 93px);">
+
+      <!-- Board -->
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; background:var(--bg);">
+        <div style="text-align:center;">
+          <!-- Minimal star board SVG -->
+          <svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+            <!-- Board background -->
+            <rect width="300" height="300" fill="#fff" stroke="#d0d0d0" stroke-width="1" rx="6"/>
+
+            <!-- Star outline (simplified) -->
+            <polygon points="150,20 165,60 210,60 175,85 188,128 150,105 112,128 125,85 90,60 135,60"
+              fill="none" stroke="#d0d0d0" stroke-width="1.5"/>
+
+            <!-- Grid holes (simplified hex grid) -->
+            <g fill="#e8e8e8" stroke="#d0d0d0" stroke-width="0.5">
+              <!-- Row 1 --> <circle cx="140" cy="50" r="4"/><circle cx="152" cy="50" r="4"/><circle cx="164" cy="50" r="4"/>
+              <!-- Row 2 --> <circle cx="134" cy="62" r="4"/><circle cx="146" cy="62" r="4"/><circle cx="158" cy="62" r="4"/><circle cx="170" cy="62" r="4"/>
+              <!-- Row 3 --> <circle cx="128" cy="74" r="4"/><circle cx="140" cy="74" r="4"/><circle cx="152" cy="74" r="4"/><circle cx="164" cy="74" r="4"/><circle cx="176" cy="74" r="4"/>
+              <!-- Row 4 --> <circle cx="116" cy="86" r="4"/><circle cx="128" cy="86" r="4"/><circle cx="140" cy="86" r="4"/><circle cx="152" cy="86" r="4"/><circle cx="164" cy="86" r="4"/><circle cx="176" cy="86" r="4"/><circle cx="188" cy="86" r="4"/>
+              <!-- Row 5 --> <circle cx="122" cy="98" r="4"/><circle cx="134" cy="98" r="4"/><circle cx="146" cy="98" r="4"/><circle cx="158" cy="98" r="4"/><circle cx="170" cy="98" r="4"/><circle cx="182" cy="98" r="4"/>
+              <!-- Row 6 --> <circle cx="128" cy="110" r="4"/><circle cx="140" cy="110" r="4"/><circle cx="152" cy="110" r="4"/><circle cx="164" cy="110" r="4"/><circle cx="176" cy="110" r="4"/>
+              <!-- Row 7 --> <circle cx="134" cy="122" r="4"/><circle cx="146" cy="122" r="4"/><circle cx="158" cy="122" r="4"/><circle cx="170" cy="122" r="4"/>
+              <!-- Row 8 --> <circle cx="128" cy="134" r="4"/><circle cx="140" cy="134" r="4"/><circle cx="152" cy="134" r="4"/><circle cx="164" cy="134" r="4"/><circle cx="176" cy="134" r="4"/>
+              <!-- Row 9 --> <circle cx="122" cy="146" r="4"/><circle cx="134" cy="146" r="4"/><circle cx="146" cy="146" r="4"/><circle cx="158" cy="146" r="4"/><circle cx="170" cy="146" r="4"/><circle cx="182" cy="146" r="4"/>
+              <!-- Row 10 --> <circle cx="116" cy="158" r="4"/><circle cx="128" cy="158" r="4"/><circle cx="140" cy="158" r="4"/><circle cx="152" cy="158" r="4"/><circle cx="164" cy="158" r="4"/><circle cx="176" cy="158" r="4"/><circle cx="188" cy="158" r="4"/>
+              <!-- Row 11 --> <circle cx="128" cy="170" r="4"/><circle cx="140" cy="170" r="4"/><circle cx="152" cy="170" r="4"/><circle cx="164" cy="170" r="4"/><circle cx="176" cy="170" r="4"/>
+              <!-- Row 12 --> <circle cx="134" cy="182" r="4"/><circle cx="146" cy="182" r="4"/><circle cx="158" cy="182" r="4"/><circle cx="170" cy="182" r="4"/>
+              <!-- Row 13 --> <circle cx="140" cy="194" r="4"/><circle cx="152" cy="194" r="4"/><circle cx="164" cy="194" r="4"/>
+            </g>
+
+            <!-- Player marbles (filled dark circles) -->
+            <!-- Red home top -->
+            <circle cx="140" cy="50" r="5" fill="#555" stroke="#333" stroke-width="0.5"/>
+            <circle cx="152" cy="50" r="5" fill="#555" stroke="#333" stroke-width="0.5"/>
+            <circle cx="164" cy="50" r="5" fill="#555" stroke="#333" stroke-width="0.5"/>
+
+            <!-- Blue marbles mid-board -->
+            <circle cx="146" cy="98" r="5" fill="#222" stroke="#111" stroke-width="0.5"/>
+            <circle cx="158" cy="98" r="5" fill="#222" stroke="#111" stroke-width="0.5"/>
+            <circle cx="152" cy="110" r="5" fill="#222" stroke="#111" stroke-width="0.5"/>
+
+            <!-- Selected marble ring -->
+            <circle cx="158" cy="98" r="8" fill="none" stroke="#222" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+            <!-- Valid destination dots -->
+            <circle cx="134" cy="98" r="3" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="2,1"/>
+            <circle cx="170" cy="98" r="3" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="2,1"/>
+            <circle cx="140" cy="110" r="3" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="2,1"/>
+
+            <!-- Green marbles -->
+            <circle cx="140" cy="134" r="5" fill="#aaa" stroke="#888" stroke-width="0.5"/>
+            <circle cx="152" cy="134" r="5" fill="#aaa" stroke="#888" stroke-width="0.5"/>
+
+            <!-- Turn indicator -->
+            <text x="150" y="280" text-anchor="middle" font-size="10" fill="#888" font-family="Helvetica">PLAYER 2's TURN</text>
+          </svg>
+          <div class="note" style="max-width:300px; margin:8px auto 0;">Board rendered on HTML5 Canvas in production. Dashed ring = selected. Dashed circles = valid destinations. Marbles styled by player color.</div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div style="width:240px; background:var(--white); border-left:1px solid var(--line); display:flex; flex-direction:column;">
+
+        <!-- Players -->
+        <div style="padding:12px; border-bottom:1px solid var(--line);">
+          <div class="wf-section-title">Players · Move 23</div>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--dark); border-radius:3px; background:var(--bg);">
+              <div class="wf-marble"></div>
+              <div style="flex:1; font-size:12px; font-weight:600;">jade_hopper</div>
+              <span class="wf-tag-fill" style="font-size:9px;">TURN</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--line); border-radius:3px;">
+              <div class="wf-marble"></div>
+              <div style="flex:1; font-size:12px;">ruby_star</div>
+              <span style="font-size:10px; color:var(--muted);">4 left</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--line); border-radius:3px;">
+              <div class="wf-marble"></div>
+              <div style="flex:1; font-size:12px;">tealmarble92</div>
+              <span style="font-size:10px; color:var(--muted);">7 left</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--line); border-radius:3px; opacity:.5;">
+              <div class="wf-marble"></div>
+              <div style="flex:1; font-size:12px; text-decoration:line-through; color:var(--muted);">violet_cross</div>
+              <span class="wf-tag" style="font-size:9px;">4th</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timer -->
+        <div style="padding:10px 12px; border-bottom:1px solid var(--line);">
+          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
+            <span style="color:var(--muted);">Turn timer</span>
+            <span style="font-weight:700;">39s</span>
+          </div>
+          <div style="height:3px; background:var(--box); border-radius:2px;">
+            <div style="height:100%; width:65%; background:var(--dark); border-radius:2px;"></div>
+          </div>
+        </div>
+        <div class="note" style="margin:6px 12px;">Timer bar turns to a lighter shade in last 10 seconds to signal urgency without being alarming.</div>
+
+        <!-- Spectators -->
+        <div style="padding:7px 12px; border-bottom:1px solid var(--line); font-size:11px; color:var(--muted);">👁 12 watching</div>
+
+        <!-- Chat -->
+        <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+          <div style="flex:1; overflow-y:auto; padding:10px 12px; display:flex; flex-direction:column; gap:5px; font-size:11px; color:var(--muted); line-height:1.6;">
+            <div style="color:var(--dark);"><b>ruby_star:</b> gl hf!</div>
+            <div style="color:var(--dark);"><b>tealmarble92:</b> nice move</div>
+            <div style="font-style:italic;">👁 hopper_fan: wow 5 hops</div>
+            <div style="color:var(--dark);"><b>jade_hopper:</b> just getting started</div>
+            <div>🏁 violet_cross finished 4th</div>
+          </div>
+          <div style="padding:8px; border-top:1px solid var(--line); display:flex; gap:6px;">
+            <input class="wf-input" style="flex:1; font-size:11px;" placeholder="Message…"/>
+            <div class="wf-btn-fill" style="font-size:11px;">→</div>
+          </div>
+        </div>
+
+        <!-- Resign -->
+        <div style="padding:8px; border-top:1px solid var(--line);">
+          <div class="wf-btn" style="width:100%; text-align:center; color:var(--muted);">🏳 Resign</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 06 SPECTATOR ══ -->
+<section class="screen" id="screen-spectator">
+  <div class="sh">
+    <span class="sh-num">06 / 08</span>
+    <span class="sh-title">Spectator View</span>
+    <span class="sh-desc">Same as Game Board with a banner and no Resign button.</span>
+  </div>
+  <div class="sb" style="padding:0;">
+
+    <!-- Spectator banner -->
+    <div style="background:var(--box); border-bottom:1px solid var(--line); padding:7px 20px; display:flex; align-items:center; gap:12px; font-size:12px;">
+      <span>👁</span>
+      <span style="font-weight:600;">Spectating this game</span>
+      <span style="color:var(--muted);">· 11 others watching</span>
+      <div class="wf-btn" style="margin-left:auto; font-size:11px;">Leave</div>
+    </div>
+    <div class="note" style="margin:8px 20px;">This banner is the only DOM difference between player and spectator views. No resign button below chat.</div>
+
+    <div style="display:flex; height: calc(100vh - 147px);">
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; background:var(--bg);">
+        <div class="wf-placeholder" style="width:300px; height:300px;">[ Board — same as Screen 05 ]</div>
+      </div>
+      <div style="width:240px; background:var(--white); border-left:1px solid var(--line); display:flex; flex-direction:column;">
+        <div style="padding:12px; border-bottom:1px solid var(--line);">
+          <div class="wf-section-title">Players</div>
+          <div style="font-size:11px; color:var(--muted);">[ Same player list as 05 ]</div>
+        </div>
+        <div style="padding:10px 12px; border-bottom:1px solid var(--line);">
+          <div style="font-size:11px; color:var(--muted);">[ Timer bar ]</div>
+        </div>
+        <div style="flex:1; padding:12px; font-size:11px; color:var(--muted);">
+          [ Chat — spectator messages in italic ]
+        </div>
+        <div style="padding:8px; border-top:1px solid var(--line);">
+          <input class="wf-input wf-input-full" placeholder="Spectator chat…" style="font-size:11px;"/>
+        </div>
+        <!-- No resign button -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 07 POST-GAME ══ -->
+<section class="screen" id="screen-postgame">
+  <div class="sh">
+    <span class="sh-num">07 / 08</span>
+    <span class="sh-title">Post-Game</span>
+    <span class="sh-desc">Finish order, ELO changes, replay link. Shown to players and spectators.</span>
+  </div>
+  <div class="sb">
+    <div style="max-width:520px; margin: 0 auto;">
+
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="font-size:32px; margin-bottom:8px;">🏆</div>
+        <div style="font-size:20px; font-weight:700;">Game Over</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">23 moves · 14 minutes</div>
+      </div>
+
+      <!-- Finish order -->
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+
+        <div class="wf-box" style="display:flex; align-items:center; gap:14px;">
+          <div style="font-size:20px; font-weight:800; width:32px; text-align:center;">1</div>
+          <div class="wf-avatar">J</div>
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:600;">jade_hopper</div>
+            <div style="font-size:10px; color:var(--muted);">Amber · Sky Blue</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:14px; font-weight:700;">+28</div>
+            <div style="font-size:10px; color:var(--muted);">1388 → 1416</div>
+          </div>
+        </div>
+
+        <div class="wf-box" style="display:flex; align-items:center; gap:14px;">
+          <div style="font-size:20px; font-weight:800; width:32px; text-align:center;">2</div>
+          <div class="wf-avatar">R</div>
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:600;">ruby_star</div>
+            <div style="font-size:10px; color:var(--muted);">Amber · Ruby Red</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:14px; font-weight:700;">+11</div>
+            <div style="font-size:10px; color:var(--muted);">1612 → 1623</div>
+          </div>
+        </div>
+
+        <div class="wf-box" style="display:flex; align-items:center; gap:14px;">
+          <div style="font-size:20px; font-weight:800; width:32px; text-align:center;">3</div>
+          <div class="wf-avatar">T</div>
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:600;">tealmarble92</div>
+            <div style="font-size:10px; color:var(--muted);">Coral · Emerald</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:14px; font-weight:700;">−9</div>
+            <div style="font-size:10px; color:var(--muted);">1245 → 1236</div>
+          </div>
+        </div>
+
+        <div class="wf-box" style="display:flex; align-items:center; gap:14px; opacity:.6;">
+          <div style="font-size:20px; font-weight:800; width:32px; text-align:center;">4</div>
+          <div class="wf-avatar">V</div>
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:600;">violet_cross</div>
+            <div style="font-size:10px; color:var(--muted);">Jade · Violet</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:14px; font-weight:700;">−18</div>
+            <div style="font-size:10px; color:var(--muted);">970 → 952</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">ELO deltas animate in (count up/down) over 1.5s after the table appears.</div>
+
+      <!-- Replay -->
+      <div class="wf-box" style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+        <span style="font-size:16px;">🎬</span>
+        <span style="font-size:12px;">Game saved.</span>
+        <a style="font-size:12px; color:var(--dark); text-decoration:underline;">View Replay</a>
+        <span style="font-size:12px; color:var(--muted);">·</span>
+        <a style="font-size:12px; color:var(--dark); text-decoration:underline;">Chat Archive</a>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <div class="wf-btn-fill" style="padding:10px 24px;">🔄 Rematch</div>
+        <div class="wf-btn" style="padding:10px 24px;" onclick="go('lobby')">🎮 New Game</div>
+        <div class="wf-btn" style="padding:10px 24px;" onclick="go('profile')">👤 Profile</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ 08 PROFILE ══ -->
+<section class="screen" id="screen-profile">
+  <div class="sh">
+    <span class="sh-num">08 / 08</span>
+    <span class="sh-title">Profile</span>
+    <span class="sh-desc">Public page. Own profile shows edit controls.</span>
+  </div>
+  <div class="sb">
+    <div class="wf-row" style="gap:20px; align-items:flex-start;">
+
+      <!-- Left card -->
+      <div style="width:220px; flex-shrink:0; display:flex; flex-direction:column; gap:12px;">
+        <div class="wf-box" style="text-align:center;">
+          <div class="wf-avatar" style="width:60px; height:60px; font-size:22px; margin: 0 auto 12px;">R</div>
+          <div style="font-size:15px; font-weight:700;">ruby_star</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">@ruby_star · 🇯🇵</div>
+          <div style="font-size:12px; font-weight:600; margin-top:8px;">Amber · 1623 ELO</div>
+          <div class="wf-btn" style="margin-top:12px; width:100%; text-align:center;">Edit Profile</div>
+        </div>
+        <div class="note">Edit Profile only visible to the account owner.</div>
+
+        <div class="wf-box">
+          <div class="grid-2" style="gap:8px;">
+            <div style="text-align:center; padding:8px; background:var(--bg); border-radius:3px;">
+              <div style="font-size:18px; font-weight:700;">147</div>
+              <div style="font-size:10px; color:var(--muted);">Games</div>
+            </div>
+            <div style="text-align:center; padding:8px; background:var(--bg); border-radius:3px;">
+              <div style="font-size:18px; font-weight:700;">68%</div>
+              <div style="font-size:10px; color:var(--muted);">Win Rate</div>
+            </div>
+            <div style="text-align:center; padding:8px; background:var(--bg); border-radius:3px;">
+              <div style="font-size:18px; font-weight:700;">12</div>
+              <div style="font-size:10px; color:var(--muted);">Streak</div>
+            </div>
+            <div style="text-align:center; padding:8px; background:var(--bg); border-radius:3px;">
+              <div style="font-size:18px; font-weight:700;">4.2</div>
+              <div style="font-size:10px; color:var(--muted);">Avg. Place</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-box">
+          <div class="wf-section-title">ELO History</div>
+          <!-- Minimal line chart placeholder -->
+          <svg width="100%" height="80" viewBox="0 0 180 80" preserveAspectRatio="none">
+            <polyline points="0,70 30,60 60,65 90,45 120,30 150,20 180,10" fill="none" stroke="#222" stroke-width="1.5"/>
+            <polyline points="0,70 30,60 60,65 90,45 120,30 150,20 180,10 180,80 0,80" fill="#222" fill-opacity="0.05" stroke="none"/>
+          </svg>
+          <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--muted); margin-top:2px;">
+            <span>3 mo ago</span><span>Now</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: history table -->
+      <div class="wf-col">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <div style="font-size:13px; font-weight:600;">Game History</div>
+          <div style="display:flex; gap:6px;">
+            <span class="wf-tag-fill">All</span>
+            <span class="wf-tag">Ranked</span>
+            <span class="wf-tag">Casual</span>
+          </div>
+        </div>
+        <div class="wf-box" style="padding:0; overflow:hidden;">
+          <table class="wf-table">
+            <thead>
+              <tr>
+                <th>Place</th>
+                <th>Mode</th>
+                <th>Players</th>
+                <th>ELO Δ</th>
+                <th>Moves</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="cursor:pointer;">
+                <td><b>1st</b></td>
+                <td><span class="wf-tag">Casual</span></td>
+                <td style="color:var(--muted);">4P</td>
+                <td>+28</td>
+                <td style="color:var(--muted);">23</td>
+                <td style="color:var(--muted);">Today</td>
+                <td><span style="font-size:11px; text-decoration:underline; cursor:pointer;">Replay</span></td>
+              </tr>
+              <tr style="cursor:pointer;">
+                <td><b>1st</b></td>
+                <td><span class="wf-tag-fill">Ranked</span></td>
+                <td style="color:var(--muted);">4P</td>
+                <td>+22</td>
+                <td style="color:var(--muted);">31</td>
+                <td style="color:var(--muted);">Yesterday</td>
+                <td><span style="font-size:11px; text-decoration:underline; cursor:pointer;">Replay</span></td>
+              </tr>
+              <tr style="cursor:pointer;">
+                <td style="color:var(--muted);">3rd</td>
+                <td><span class="wf-tag-fill">Ranked</span></td>
+                <td style="color:var(--muted);">6P</td>
+                <td style="color:var(--muted);">−14</td>
+                <td style="color:var(--muted);">41</td>
+                <td style="color:var(--muted);">2d ago</td>
+                <td><span style="font-size:11px; text-decoration:underline; cursor:pointer;">Replay</span></td>
+              </tr>
+              <tr style="cursor:pointer;">
+                <td><b>2nd</b></td>
+                <td><span class="wf-tag-fill">Ranked</span></td>
+                <td style="color:var(--muted);">4P</td>
+                <td>+11</td>
+                <td style="color:var(--muted);">28</td>
+                <td style="color:var(--muted);">3d ago</td>
+                <td><span style="font-size:11px; text-decoration:underline; cursor:pointer;">Replay</span></td>
+              </tr>
+              <tr style="cursor:pointer;">
+                <td style="color:var(--muted);">4th</td>
+                <td><span class="wf-tag">Casual</span></td>
+                <td style="color:var(--muted);">4P</td>
+                <td style="color:var(--muted);">—</td>
+                <td style="color:var(--muted);">35</td>
+                <td style="color:var(--muted);">4d ago</td>
+                <td><span style="font-size:11px; text-decoration:underline; cursor:pointer;">Replay</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="text-align:center; margin-top:10px; font-size:11px; color:var(--muted);">142 more games ↓</div>
+        <div class="note">Each row links to the replay viewer. Row hover shows a subtle background.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const s = document.getElementById('screen-' + id);
+  if (s) s.classList.add('active');
+  const n = document.querySelector('[data-s="' + id + '"]');
+  if (n) n.classList.add('active');
+  document.getElementById('main').scrollTop = 0;
+}
+
+function toggleNotes(cb) {
+  document.body.classList.toggle('notes-on', cb.checked);
+}
+</script>
+</body>
+</html>

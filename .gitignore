@@ -1,0 +1,17 @@
+node_modules/
+.claude/
+.mail-outbox.jsonl
+test-results/
+playwright-report/
+dist/
+build/
+.env
+.env.local
+*.log
+.DS_Store
+coverage/
+.turbo/
+.vite/
+*.db
+*.db-journal
+prisma/dev.db*

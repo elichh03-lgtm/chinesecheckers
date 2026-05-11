@@ -1,0 +1,65 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Gate on CI: this workflow only runs after the CI workflow on the same SHA succeeds.
+  wait-for-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for CI to succeed
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: test
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 15
+
+  deploy-server:
+    needs: wait-for-ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy server
+        run: flyctl deploy --remote-only --config apps/server/fly.toml --dockerfile apps/server/Dockerfile .
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  deploy-web:
+    needs: deploy-server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy web
+        run: flyctl deploy --remote-only --config apps/web/fly.toml --dockerfile apps/web/Dockerfile .
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  smoke-test:
+    needs: [deploy-server, deploy-web]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl server health via web proxy
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5; do
+            code=$(curl -sS -o /tmp/body -w "%{http_code}" https://cc-web.fly.dev/api/v1/health || echo "000")
+            if [ "$code" = "200" ]; then
+              echo "OK: $(cat /tmp/body)"
+              exit 0
+            fi
+            echo "attempt $i: HTTP $code — retrying in 10s"
+            sleep 10
+          done
+          echo "smoke test failed"
+          exit 1

@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chinese Checkers Online — Buildout Plan</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:     #f5f5f3;
+  --white:  #ffffff;
+  --line:   #e0e0e0;
+  --dark:   #1a1a1a;
+  --mid:    #555555;
+  --muted:  #999999;
+  --phase0: #1a1a1a;
+  --phase1: #2d2d2d;
+  --phase2: #3a3a3a;
+}
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--dark);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ── Layout ── */
+.page { max-width: 980px; margin: 0 auto; padding: 48px 32px; }
+
+/* ── Header ── */
+.doc-header { margin-bottom: 52px; padding-bottom: 28px; border-bottom: 2px solid var(--dark); }
+.doc-header h1 { font-size: 28px; font-weight: 800; letter-spacing: -.01em; }
+.doc-header .sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.doc-meta { display: flex; gap: 28px; margin-top: 20px; }
+.doc-meta-item { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+.doc-meta-val { font-size: 13px; color: var(--dark); font-weight: 600; margin-top: 2px; }
+
+/* ── TOC ── */
+.toc { background: var(--white); border: 1px solid var(--line); border-radius: 4px; padding: 20px 24px; margin-bottom: 48px; }
+.toc h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; }
+.toc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 24px; }
+.toc-item { font-size: 12px; color: var(--mid); cursor: pointer; padding: 3px 0; border-bottom: 1px dotted transparent; }
+.toc-item:hover { border-bottom-color: var(--mid); }
+.toc-num { color: var(--muted); margin-right: 6px; font-size: 11px; }
+
+/* ── Timeline strip ── */
+.timeline-wrap { margin-bottom: 52px; }
+.timeline-wrap h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 14px; }
+.timeline { display: flex; gap: 3px; }
+.t-block { flex: 1; }
+.t-bar { height: 6px; border-radius: 2px; background: var(--dark); opacity: .15; }
+.t-bar.active { opacity: 1; }
+.t-label { font-size: 9px; color: var(--muted); margin-top: 5px; white-space: nowrap; }
+.t-phase { font-size: 10px; font-weight: 700; color: var(--dark); white-space: nowrap; }
+.timeline-phases { display: flex; gap: 3px; margin-bottom: 6px; }
+.tp { text-align: center; font-size: 9px; font-weight: 700; padding: 3px 0; background: var(--dark); color: var(--white); border-radius: 2px; }
+
+/* ── Section ── */
+.section { margin-bottom: 56px; }
+.section-header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.section-num { font-size: 11px; color: var(--muted); min-width: 28px; }
+.section-title { font-size: 18px; font-weight: 700; }
+.section-weeks { font-size: 11px; color: var(--muted); margin-left: auto; }
+.section-desc { font-size: 12px; color: var(--mid); margin-bottom: 18px; line-height: 1.7; max-width: 680px; }
+
+/* ── Phase band ── */
+.phase-band {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--dark); color: var(--white);
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 2px; margin-bottom: 16px;
+}
+
+/* ── Task groups ── */
+.task-group { margin-bottom: 20px; }
+.task-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--mid); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+.task-list { display: flex; flex-direction: column; gap: 1px; }
+.task {
+  display: grid;
+  grid-template-columns: 20px 1fr auto auto;
+  gap: 0 12px;
+  align-items: start;
+  padding: 7px 10px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  margin-bottom: 2px;
+}
+.task:hover { border-color: var(--dark); }
+.task-check { width: 14px; height: 14px; border: 1px solid var(--line); border-radius: 2px; margin-top: 1px; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.task-check:hover { border-color: var(--dark); }
+.task-check.done { background: var(--dark); border-color: var(--dark); }
+.task-check.done::after { content: '✓'; color: var(--white); font-size: 9px; }
+.task-body { }
+.task-name { font-size: 12px; font-weight: 500; }
+.task-detail { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+.task-effort { font-size: 10px; color: var(--muted); white-space: nowrap; padding-top: 2px; }
+.task-tag { font-size: 10px; white-space: nowrap; padding: 1px 7px; border: 1px solid var(--line); border-radius: 2px; color: var(--muted); margin-top: 2px; }
+.task-tag.blocker { border-color: var(--dark); color: var(--dark); font-weight: 600; }
+.task-tag.crit { border-color: var(--dark); background: var(--dark); color: var(--white); }
+
+/* ── Two-col tasks ── */
+.task-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ── Info box ── */
+.info-box { background: var(--white); border: 1px solid var(--line); border-radius: 4px; padding: 16px 18px; margin-bottom: 16px; }
+.info-box h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 8px; }
+.info-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--bg); }
+.info-row:last-child { border-bottom: none; }
+.info-key { color: var(--mid); }
+
+/* ── Stack table ── */
+.stack-table { width: 100%; border-collapse: collapse; }
+.stack-table th { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--line); background: var(--bg); }
+.stack-table td { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 12px; vertical-align: top; }
+.stack-table tr:last-child td { border-bottom: none; }
+.stack-table td:first-child { font-weight: 600; white-space: nowrap; color: var(--dark); }
+.stack-table td:nth-child(2) { color: var(--mid); }
+
+/* ── Risk table ── */
+.risk-table { width: 100%; border-collapse: collapse; }
+.risk-table th { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--line); background: var(--bg); }
+.risk-table td { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 12px; vertical-align: top; }
+.risk-table tr:last-child td { border-bottom: none; }
+.risk-h { color: #888; font-weight: 700; }
+.risk-m { color: #aaa; font-weight: 700; }
+.risk-l { color: #ccc; font-weight: 700; }
+
+/* ── Milestone ── */
+.milestone-list { display: flex; flex-direction: column; gap: 2px; }
+.milestone { display: flex; align-items: center; gap: 14px; padding: 10px 14px; background: var(--white); border: 1px solid var(--line); border-radius: 3px; }
+.m-week { font-size: 10px; color: var(--muted); min-width: 50px; font-weight: 600; }
+.m-diamond { width: 10px; height: 10px; background: var(--dark); transform: rotate(45deg); flex-shrink: 0; }
+.m-name { font-size: 12px; font-weight: 600; flex: 1; }
+.m-desc { font-size: 11px; color: var(--muted); }
+
+/* ── Checklist (launch) ── */
+.check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.check-group { background: var(--white); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; }
+.check-group h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 10px; }
+.check-item { display: flex; align-items: flex-start; gap: 8px; padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--bg); }
+.check-item:last-child { border-bottom: none; }
+.check-box { width: 13px; height: 13px; border: 1px solid var(--line); border-radius: 2px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── Roadmap ── */
+.roadmap { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+.roadmap-col h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.roadmap-item { font-size: 12px; padding: 5px 0; border-bottom: 1px solid var(--bg); color: var(--mid); display: flex; gap: 8px; }
+.roadmap-item::before { content: '—'; color: var(--line); flex-shrink: 0; }
+
+/* ── Effort summary ── */
+.effort-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.effort-box { background: var(--white); border: 1px solid var(--line); border-radius: 3px; padding: 14px; text-align: center; }
+.effort-val { font-size: 22px; font-weight: 800; }
+.effort-key { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
+
+/* ── Print ── */
+@media print {
+  body { background: white; }
+  .task:hover { border-color: var(--line); }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <div class="doc-header">
+    <h1>Chinese Checkers Online — Buildout Plan</h1>
+    <div class="sub">Idea → Functional Web App · Full Development Roadmap</div>
+    <div class="doc-meta">
+      <div class="doc-meta-item">Version<div class="doc-meta-val">1.0</div></div>
+      <div class="doc-meta-item">Date<div class="doc-meta-val">May 2026</div></div>
+      <div class="doc-meta-item">Solo Dev Timeline<div class="doc-meta-val">~14 weeks full-time</div></div>
+      <div class="doc-meta-item">Team Timeline<div class="doc-meta-val">~7 weeks (2 devs)</div></div>
+      <div class="doc-meta-item">Reference<div class="doc-meta-val">DESIGN.md · wireframes.html</div></div>
+    </div>
+  </div>
+
+  <!-- ── TOC ── -->
+  <div class="toc">
+    <h2>Contents</h2>
+    <div class="toc-grid">
+      <div class="toc-item"><span class="toc-num">00</span>Overview & Effort</div>
+      <div class="toc-item"><span class="toc-num">01</span>Phase 1 — Foundation</div>
+      <div class="toc-item"><span class="toc-num">02</span>Phase 2 — Game Engine</div>
+      <div class="toc-item"><span class="toc-num">03</span>Phase 3 — Backend API</div>
+      <div class="toc-item"><span class="toc-num">04</span>Phase 4 — WebSocket Layer</div>
+      <div class="toc-item"><span class="toc-num">05</span>Phase 5 — Frontend Scaffold</div>
+      <div class="toc-item"><span class="toc-num">06</span>Phase 6 — Board Renderer</div>
+      <div class="toc-item"><span class="toc-num">07</span>Phase 7 — Lobby & Rooms</div>
+      <div class="toc-item"><span class="toc-num">08</span>Phase 8 — Full Game Flow</div>
+      <div class="toc-item"><span class="toc-num">09</span>Phase 9 — Auth & Profiles</div>
+      <div class="toc-item"><span class="toc-num">10</span>Phase 10 — Polish</div>
+      <div class="toc-item"><span class="toc-num">11</span>Phase 11 — Testing</div>
+      <div class="toc-item"><span class="toc-num">12</span>Phase 12 — Infrastructure</div>
+      <div class="toc-item"><span class="toc-num">13</span>Launch Checklist</div>
+      <div class="toc-item"><span class="toc-num">14</span>Risk Register</div>
+      <div class="toc-item"><span class="toc-num">15</span>Post-Launch Roadmap</div>
+    </div>
+  </div>
+
+  <!-- ── Timeline ── -->
+  <div class="timeline-wrap">
+    <h2>14-Week Timeline (Solo, Full-Time)</h2>
+    <div style="display:flex; gap:3px; margin-bottom:4px;">
+      <div style="flex:1; text-align:center; font-size:9px; font-weight:700; background:var(--dark); color:var(--white); padding:3px; border-radius:2px;">FOUND.</div>
+      <div style="flex:2; text-align:center; font-size:9px; font-weight:700; background:var(--dark); color:var(--white); padding:3px; border-radius:2px;">ENGINE + API</div>
+      <div style="flex:3; text-align:center; font-size:9px; font-weight:700; background:var(--dark); color:var(--white); padding:3px; border-radius:2px;">FRONTEND + SOCKETS</div>
+      <div style="flex:2; text-align:center; font-size:9px; font-weight:700; background:var(--dark); color:var(--white); padding:3px; border-radius:2px;">POLISH + TEST</div>
+      <div style="flex:2; text-align:center; font-size:9px; font-weight:700; background:var(--dark); color:var(--white); padding:3px; border-radius:2px;">INFRA + LAUNCH</div>
+    </div>
+    <div style="display:flex; gap:3px;">
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 1</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 2</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 3</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 4</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 5</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 6</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 7</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 8</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 9</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 10</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 11</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 12</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 13</div></div>
+      <div class="t-block"><div class="t-bar active"></div><div class="t-label">Wk 14</div></div>
+    </div>
+  </div>
+
+  <!-- ── Milestones ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">00</span>
+      <span class="section-title">Overview & Key Milestones</span>
+    </div>
+
+    <div class="effort-grid" style="margin-bottom:24px;">
+      <div class="effort-box"><div class="effort-val">12</div><div class="effort-key">Phases</div></div>
+      <div class="effort-box"><div class="effort-val">~150</div><div class="effort-key">Tasks</div></div>
+      <div class="effort-box"><div class="effort-val">14 wks</div><div class="effort-key">Solo Timeline</div></div>
+      <div class="effort-box"><div class="effort-val">$80–200</div><div class="effort-key">Infra / Month</div></div>
+    </div>
+
+    <div class="milestone-list">
+      <div class="milestone"><span class="m-week">Day 7</span><div class="m-diamond"></div><div class="m-name">Dev Environment Live</div><div class="m-desc">Repo, Docker, DB, CI all running locally</div></div>
+      <div class="milestone"><span class="m-week">Day 18</span><div class="m-diamond"></div><div class="m-name">Game Engine Complete</div><div class="m-desc">All move validation passing unit tests; 100% coverage</div></div>
+      <div class="milestone"><span class="m-week">Day 35</span><div class="m-diamond"></div><div class="m-name">Backend API + WebSockets Working</div><div class="m-desc">Two Postman clients can play a full game via sockets in dev</div></div>
+      <div class="milestone"><span class="m-week">Day 49</span><div class="m-diamond"></div><div class="m-name">Playable Browser Build</div><div class="m-desc">Two browser tabs can play a full real-time game end-to-end</div></div>
+      <div class="milestone"><span class="m-week">Day 63</span><div class="m-diamond"></div><div class="m-name">Full Feature Complete</div><div class="m-desc">Auth, profiles, ELO, lobby, chat, spectators, replay all working</div></div>
+      <div class="milestone"><span class="m-week">Day 77</span><div class="m-diamond"></div><div class="m-name">Testing Done</div><div class="m-desc">Unit + integration + load tests green; staging deployed</div></div>
+      <div class="milestone"><span class="m-week">Day 84</span><div class="m-diamond"></div><div class="m-name">Closed Beta</div><div class="m-desc">~20 invited users playing on staging; collecting feedback</div></div>
+      <div class="milestone"><span class="m-week">Day 98</span><div class="m-diamond"></div><div class="m-name">🚀 Public Launch</div><div class="m-desc">DNS live, monitoring on, announced publicly</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 1 — FOUNDATION
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <span class="section-title">Foundation</span>
+      <span class="section-weeks">Week 1</span>
+    </div>
+    <p class="section-desc">Set up the project skeleton so every subsequent phase has a reliable foundation. Nothing in later phases should need to revisit repo structure, tooling, or local dev environment.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Repository & Tooling</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Create monorepo (pnpm workspaces)</div><div class="task-detail">Packages: <code>apps/server</code>, <code>apps/web</code>, <code>packages/game-engine</code>, <code>packages/shared-types</code></div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">TypeScript config (shared tsconfig base)</div><div class="task-detail">Strict mode on. Path aliases. Shared types referenced by both apps.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">ESLint + Prettier config</div><div class="task-detail">Airbnb rules base, TS plugin, React plugin for web app.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Git repo + branching strategy</div><div class="task-detail">main (protected), dev, feature/* branches. Conventional commits enforced via commitlint.</div></div>
+              <div class="task-effort">30m</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">GitHub Actions CI skeleton</div><div class="task-detail">On PR: lint → typecheck → unit tests. Badge on README.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Local Dev Environment</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Docker Compose setup</div><div class="task-detail">Services: postgres:16, redis:7, adminer (DB UI). Volume mounts for persistence.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Environment variable management</div><div class="task-detail">.env.example committed. .env gitignored. Zod schema validates all env vars on startup.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Database Setup</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Prisma setup + initial schema</div><div class="task-detail">All tables from DESIGN.md §7: users, elo_ratings, games, game_players, moves, elo_history, chat_messages.</div></div>
+              <div class="task-effort">3h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Seed script</div><div class="task-detail">Creates 6 test users with varying ELO, 2 completed games with full move logs for dev replay testing.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Redis client setup</div><div class="task-detail">ioredis client. Helper functions: <code>setGameState</code>, <code>getGameState</code>, <code>deleteGameState</code>.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Server Skeleton</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Express app bootstrap</div><div class="task-detail">CORS, helmet, compression, morgan logging. Health check route <code>GET /health</code>.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Global error handler + logger</div><div class="task-detail">Winston logger. Structured JSON logs. Uncaught exception handler. Never leak stack traces in prod.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Shared types package</div><div class="task-detail">All TypeScript interfaces shared between server and client: <code>GameState</code>, <code>Move</code>, <code>Player</code>, socket event payloads.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag blocker">Blocker</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 2 — GAME ENGINE
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <span class="section-title">Game Engine</span>
+      <span class="section-weeks">Weeks 1–3</span>
+    </div>
+    <p class="section-desc">The game engine lives in <code>packages/game-engine</code> — pure TypeScript, zero dependencies, 100% unit tested. Everything that touches game rules goes here. This is the most critical piece of the entire project; bugs here corrupt game state permanently.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Board Model</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Axial hex coordinate system</div><div class="task-detail">Define <code>Hex { q, r }</code> type. Implement 6-direction neighbor lookup. Hex distance function. <code>hexToString</code> / <code>stringToHex</code> helpers.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">BOARD_POSITIONS Set (121 holes)</div><div class="task-detail">Hardcode all valid axial coordinates for the star board. Verify count is exactly 121. Write test.</div></div>
+              <div class="task-effort">3h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">HOME_TRIANGLES & TARGET_TRIANGLES</div><div class="task-detail">10 holes per player, for all 6 starting positions. TARGET = opposite HOME. Config for 2P, 3P, 4P, 6P layouts.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Pixel ↔ Axial conversion functions</div><div class="task-detail">Used by the Canvas renderer. <code>hexToPixel(hex, size)</code> and <code>pixelToHex(x, y, size)</code>. Flat-top orientation.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Initial board state factory</div><div class="task-detail"><code>createInitialBoard(playerCount, playerIds)</code> → places all marbles in home triangles. Returns full <code>GameState</code>.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Move Validation</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Step move validator</div><div class="task-detail">Assert marble belongs to current player. Assert destination is empty neighbor. Return <code>ValidMove | InvalidMove</code>.</div></div>
+              <div class="task-effort">1h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Single hop validator</div><div class="task-detail">Midpoint must exist on board and be occupied. Landing must be empty. No capturing.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Chain hop validator</div><div class="task-detail">Validate full hop path. No revisiting holes. Can change direction each hop. Can stop at any point mid-chain.</div></div>
+              <div class="task-effort">3h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Complete move validator (entry point)</div><div class="task-detail">Combines all validators. Takes <code>(state, playerId, move)</code> → <code>ValidationResult</code> with typed error reasons.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Move Generation</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Valid destination generator (BFS)</div><div class="task-detail"><code>getValidDestinations(state, from)</code>. Returns all reachable holes for a marble via step or any hop chain. Used for UI highlighting.</div></div>
+              <div class="task-effort">3h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">All valid moves generator</div><div class="task-detail"><code>getAllValidMoves(state, playerId)</code>. Used for auto-move on timeout and future AI. Returns array of <code>Move</code>.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">State Management</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Apply move function</div><div class="task-detail"><code>applyMove(state, move)</code> → new immutable <code>GameState</code>. Advances turn index. Increments move counter.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Win condition checker</div><div class="task-detail"><code>checkWin(state, playerId)</code>. All 10 marbles in target triangle. Handles players who finished earlier.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Blocking rule checker</div><div class="task-detail">Optional rule: prevents permanently camping home triangle. Detected after every move for applicable players.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Testing</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Unit tests — board model</div><div class="task-detail">Test all 121 positions loaded. Home/target triangles correct for all player configs. Pixel conversion round-trips.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Unit tests — move validation</div><div class="task-detail">Test valid/invalid step moves, single hops, multi-hop chains, loop detection, wrong-turn errors. Edge cases for blocking rule.</div></div>
+              <div class="task-effort">4h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Unit tests — win condition & apply</div><div class="task-detail">Test a complete 2P game end-to-end using move log. Verify state after every move matches expected.</div></div>
+              <div class="task-effort">3h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 3 — BACKEND API
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <span class="section-title">Backend API</span>
+      <span class="section-weeks">Weeks 2–4</span>
+    </div>
+    <p class="section-desc">REST API covering authentication, user management, room management, and matchmaking. All inputs validated with Zod. All routes documented. Runs on Express.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Authentication</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Passport.js Local strategy (email + password)</div><div class="task-detail">bcrypt hash on register. Compare on login. Return JWT access token (15m) + refresh token (7d).</div></div>
+              <div class="task-effort">3h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Google OAuth strategy</div><div class="task-detail">Passport Google OAuth2. Create user on first login. Link to existing account if email matches.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">JWT middleware</div><div class="task-detail">Verify access token on protected routes. Attach <code>req.user</code>. Return 401 on expired/invalid.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Refresh token rotation</div><div class="task-detail">Single-use refresh tokens stored in Redis. Issue new pair on refresh. Old token blacklisted immediately.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Guest session endpoint</div><div class="task-detail"><code>POST /auth/guest</code> → creates ephemeral user, returns short-lived token. Guest flag prevents ranked access.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Users & Profiles</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">User CRUD endpoints</div><div class="task-detail"><code>GET /users/:username</code>, <code>PATCH /users/me</code>. Enforce username uniqueness. Sanitize display name.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Avatar upload (S3 presigned URL)</div><div class="task-detail">Client requests presigned URL → uploads directly to S3 → POSTs URL to API. Validate file type + max 2MB.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Game history + ELO history endpoints</div><div class="task-detail">Paginated. Support filters (mode, date range). ELO history returns array of <code>{date, rating}</code> for chart.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Rooms & Lobby</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Create room endpoint</div><div class="task-detail"><code>POST /rooms</code>. Generate 6-char invite code (no ambiguous chars). Validate settings with Zod. Store in DB.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">List public rooms endpoint</div><div class="task-detail"><code>GET /rooms?playerCount=4</code>. Only rooms with status=waiting and open seats. Paginated, max 50/page.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Join room endpoint</div><div class="task-detail"><code>POST /rooms/:code/join</code>. Assigns color, returns socket token. Rejects if full or game already started.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Matchmaking</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Matchmaking queue (Redis sorted set)</div><div class="task-detail">Score = ELO. Dequeue pairs within ±150 ELO window. Expand to ±300 after 60s. Create game on match.</div></div>
+              <div class="task-effort">4h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Queue status polling endpoint</div><div class="task-detail"><code>GET /matchmaking/status</code> → estimated wait time based on queue depth. Client polls every 2s.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Games & Replays</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Game metadata endpoint</div><div class="task-detail"><code>GET /games/:id</code> → returns game settings, players, status, duration.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Move log endpoint (replay)</div><div class="task-detail"><code>GET /games/:id/moves</code> → full ordered move list with path arrays for animation replay.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Rate limiting</div><div class="task-detail">express-rate-limit: 100 req/min general, 5 req/min on auth routes. Redis-backed for multi-node.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Leaderboard endpoint</div><div class="task-detail"><code>GET /leaderboard?mode=multi</code> → top 100 by rating. Cached in Redis, refreshed every 5 min.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 4 — WEBSOCKET
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <span class="section-title">WebSocket Layer</span>
+      <span class="section-weeks">Weeks 3–5</span>
+    </div>
+    <p class="section-desc">Socket.io server with Redis adapter for multi-node support. All game real-time events flow through here. The server is the sole authority — clients only send intent, the server decides outcome.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Server Setup</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Socket.io server + /game namespace</div><div class="task-detail">Attach to Express HTTP server. Separate <code>/game</code> namespace. Auth middleware validates JWT on connection.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Redis adapter (@socket.io/redis-adapter)</div><div class="task-detail">Required for multi-node. Events broadcast across all app instances. Test with 2 local server processes.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Event validation middleware</div><div class="task-detail">All incoming socket events validated with Zod before reaching handlers. Emit <code>error</code> on invalid payload.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Room Events</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">room:join handler</div><div class="task-detail">Validate token. Load room from DB. Add socket to Socket.io room. Emit <code>room:state</code> to joiner. Broadcast <code>room:player_joined</code> to others.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">room:leave + disconnect handler</div><div class="task-detail">Pre-game: remove player, broadcast. Mid-game: start 60s reconnection window before treating as timeout.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Chat Events</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">chat:send handler</div><div class="task-detail">Validate content (max 200 chars). Profanity filter pass. Persist to DB. Broadcast <code>chat:message</code> to room including spectators.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Game Events</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">game:move_attempt handler</div><div class="task-detail">Validate it's the player's turn. Run game engine validator. On success: apply move, save to Redis + DB, broadcast <code>game:move_confirmed</code>. On fail: emit <code>game:move_rejected</code> to mover only.</div></div>
+              <div class="task-effort">4h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">game:request_preview handler</div><div class="task-detail">Run <code>getValidDestinations</code> from engine. Emit <code>game:valid_destinations</code> back to requesting socket only.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Turn timer logic</div><div class="task-detail">Start <code>setTimeout</code> on turn start. Store <code>timerEndsAt</code> in Redis. On timeout: pick random valid move, apply, emit <code>game:timeout_move</code>. Three timeouts → auto-resign.</div></div>
+              <div class="task-effort">4h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Win condition + game over flow</div><div class="task-detail">After each move, run <code>checkWin</code>. On finish: record place, continue game for remaining players. When all done: run ELO calc, persist, emit <code>game:over</code>.</div></div>
+              <div class="task-effort">3h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">game:resign handler</div><div class="task-detail">Mark player as resigned with current finish position. Continue game for others. Recalculate ELO if game ends.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Reconnection handler</div><div class="task-detail">On reconnect within 60s: re-attach socket to room, emit full <code>game:start</code> with <code>isReconnect:true</code>. Resume paused timer.</div></div>
+              <div class="task-effort">3h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Spectator Events</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">spectator:join handler</div><div class="task-detail">Join socket room. Emit full game state. Flag socket as spectator (cannot send moves). Broadcast updated spectator count.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 5 — FRONTEND SCAFFOLD
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <span class="section-title">Frontend Scaffold</span>
+      <span class="section-weeks">Weeks 3–5 (parallel with Phase 4)</span>
+    </div>
+    <p class="section-desc">React app wiring — routing, state management, API client, socket client. No game-specific UI yet, just the infrastructure everything else plugs into.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">App Setup</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Vite + React + TypeScript</div><div class="task-detail">Use Vite's React-TS template. Configure path aliases (<code>@/</code> → <code>src/</code>). Dev proxy to backend port.</div></div>
+              <div class="task-effort">1h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Tailwind CSS setup</div><div class="task-detail">Install + configure. Define custom design tokens (colors, font sizes) in tailwind.config. Dark mode via class strategy.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">React Router v6 routes</div><div class="task-detail">Routes: <code>/</code> (Landing), <code>/lobby</code>, <code>/game/:id</code>, <code>/profile/:username</code>, <code>/replay/:id</code>. Route guards for auth-required pages.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">State Management</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Zustand store — auth slice</div><div class="task-detail">Current user, JWT token, login/logout actions. Persist to localStorage (token only). Rehydrate on mount.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Zustand store — game slice</div><div class="task-detail">Board state, turn order, current turn, timer, finished players, chat messages. Updated by socket events.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Zustand store — lobby slice</div><div class="task-detail">Room list, matchmaking status, current room. Polled/updated from REST + socket events.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">API & Socket Clients</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Axios client with auth interceptors</div><div class="task-detail">Auto-attach Bearer token. On 401: attempt refresh, retry. On refresh fail: redirect to login.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Typed API service layer</div><div class="task-detail">One file per domain: <code>authApi.ts</code>, <code>roomsApi.ts</code>, <code>usersApi.ts</code>, <code>gamesApi.ts</code>. All return typed responses.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Socket.io client singleton</div><div class="task-detail">Single socket instance managed in a React context. Connects on game join. Disconnects on leave. Typed emit/on wrappers using shared-types.</div></div>
+              <div class="task-effort">3h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Socket event → Zustand dispatch bridge</div><div class="task-detail">useEffect in root component maps incoming socket events to Zustand store updates. Keep socket logic out of components.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Layout Components</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Navbar component</div><div class="task-detail">Logo, nav links, auth state (guest vs. logged-in avatar). Responsive collapse to hamburger on mobile.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Toast / notification system</div><div class="task-detail">For move rejected, player disconnected, ELO update messages. Fixed position, auto-dismiss at 4s.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 6 — BOARD RENDERER
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <span class="section-title">Board Renderer</span>
+      <span class="section-weeks">Weeks 4–6</span>
+    </div>
+    <p class="section-desc">HTML5 Canvas rendering of the game board. This is the most complex UI component — it needs to feel smooth, beautiful, and respond to clicks accurately. The coordinate math from the game engine feeds directly into the renderer.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Canvas Foundation</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Canvas component + resize handler</div><div class="task-detail">React ref to canvas element. Listen to window resize. Recalculate hex size to fill available space. DPI scaling for retina screens (<code>devicePixelRatio</code>).</div></div>
+              <div class="task-effort">3h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Render loop (requestAnimationFrame)</div><div class="task-detail">60fps render loop. Only re-render when state has changed (dirty flag). Clear → draw board → draw marbles → draw overlays.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Board hole rendering</div><div class="task-detail">Draw all 121 holes as circles. Home triangle holes subtly tinted with player color at 15% opacity. Empty holes: grey.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Marble rendering</div><div class="task-detail">Radial gradient circle (white highlight at 35% 30% → player color → dark edge). Looks 3D. Crisp at all sizes.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Interaction</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Click/tap detection</div><div class="task-detail">Canvas mouse/touch events → pixel → hex coordinate. Determine if a marble or hole was clicked. Hit-test radius slightly larger than visual marble for forgiveness.</div></div>
+              <div class="task-effort">2h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Marble selection state</div><div class="task-detail">Click own marble → select it, emit <code>game:request_preview</code>. Click another own marble → switch selection. Click empty → deselect.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Valid destination overlay</div><div class="task-detail">Pulsing dot on each valid destination hole. Animate radius 3→5→3px at 1s period via rAF. Only visible for current player's selected marble.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Move submission on destination click</div><div class="task-detail">If destination is in valid set: emit <code>game:move_attempt</code>. Optimistically animate immediately, reverse on <code>game:move_rejected</code>.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Animation</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Step move animation</div><div class="task-detail">Marble moves from origin to destination over 200ms. Easing: ease-out. Board continues rendering other elements during animation.</div></div>
+              <div class="task-effort">3h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Hop chain animation</div><div class="task-detail">Animate marble sequentially through each waypoint in path array. 180ms per hop. Brief pause (50ms) at each landing before next hop.</div></div>
+              <div class="task-effort">3h</div>
+              <div class="task-tag crit">Critical</div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Selection glow ring animation</div><div class="task-detail">Pulsing ring around selected marble (radius grows and fades). Drawn in player color.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Last-move flash</div><div class="task-detail">After a move completes, the origin and destination holes briefly flash (50% white overlay, fade over 600ms). Works for opponent moves too.</div></div>
+              <div class="task-effort">1h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Input blocking during animation</div><div class="task-detail">Disable marble selection and moves while any animation is playing. Queue incoming <code>move_confirmed</code> events if local animation hasn't finished.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-title">Polish</div>
+          <div class="task-list">
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Board background + star outline</div><div class="task-detail">Subtle star-of-david polygon outline behind holes. Color tinted home zones. Looks good at all sizes.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+            <div class="task">
+              <div class="task-check"></div>
+              <div class="task-body"><div class="task-name">Touch support</div><div class="task-detail">Touch events mirror mouse logic. Prevent default to stop scroll-on-drag interfering with marble selection. Works on iOS Safari + Android Chrome.</div></div>
+              <div class="task-effort">2h</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 7 — LOBBY & ROOMS
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <span class="section-title">Lobby & Rooms UI</span>
+      <span class="section-weeks">Weeks 5–7</span>
+    </div>
+    <p class="section-desc">All screens before the game starts. Reference wireframes.html screens 01–04.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Landing Page</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Hero section</div><div class="task-detail">Logo, headline, CTA buttons (Play Now → lobby, Ranked Play → auth gate). Live player count pulled from API.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Feature cards + footer</div></div><div class="task-effort">1h</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">Lobby Screen</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Room browser table</div><div class="task-detail">Live list from GET /rooms. Auto-refresh every 10s. Filter chips. Join button per row.</div></div><div class="task-effort">3h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Matchmaking queue card</div><div class="task-detail">Mode selector (2P / Multi). Join Queue button. Live estimated wait time. Cancel button. Transition to Pre-Game on match.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Invite code entry</div><div class="task-detail">6-char input with uppercase enforcement. Join on Enter or button. Error message for invalid/full/started rooms.</div></div><div class="task-effort">1h</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">Auth Pages</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Login / Register forms</div><div class="task-detail">Form validation. Google OAuth button. Password visibility toggle. Error messages inline.</div></div><div class="task-effort">3h</div><div></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Create Room Modal</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Room settings form</div><div class="task-detail">Player count selector (2/3/4/6). Timer select. Public/private toggle. Spectators toggle. Blocking rule toggle.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Submit → redirect to pre-game</div><div class="task-detail">POST /rooms, receive invite code, navigate to /game/:id waiting state.</div></div><div class="task-effort">1h</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">Pre-Game Room</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Player slots (live via socket)</div><div class="task-detail">Updates in real-time as players join/leave. Color dot, username, ELO, ready status. Host crown badge.</div></div><div class="task-effort">3h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Invite code display + copy buttons</div></div><div class="task-effort">30m</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Start Game button (host only)</div><div class="task-detail">Disabled until ≥ 2 players joined. Emits game start via socket. All clients transition to board screen.</div></div><div class="task-effort">1h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Pre-game chat</div><div class="task-detail">Live chat panel active before game starts. Carried over into in-game chat on start.</div></div><div class="task-effort">1h</div><div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 8 — FULL GAME FLOW
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <span class="section-title">Full Game Flow UI</span>
+      <span class="section-weeks">Weeks 6–8</span>
+    </div>
+    <p class="section-desc">Wire up the board renderer to real socket events. Build the game sidebar, chat, timer, spectator view, and post-game screen. Reference wireframes.html screens 05–07.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">In-Game Screen</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Game board layout</div><div class="task-detail">Canvas left, sidebar right. Sidebar: player list, timer bar, spectator count, chat, resign button.</div></div><div class="task-effort">2h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Player list sidebar</div><div class="task-detail">Marble color dot, username, ELO, marbles remaining. Active player highlighted. Finished players dimmed with place badge.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Turn timer UI</div><div class="task-detail">Progress bar. Countdown number. Animates smoothly via rAF (not setInterval). Turns red in last 10s. Resets on each new turn.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">In-game chat</div><div class="task-detail">Message list (player vs. spectator styling). Emote buttons. Auto-scroll to bottom. Max height with scroll.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Resign flow</div><div class="task-detail">Resign button → confirmation modal → emit game:resign. Brief animation before player slot dims.</div></div><div class="task-effort">1h</div><div></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Spectator View</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Spectator banner + join flow</div><div class="task-detail">Banner at top of game screen. No resign button. Spectator chat labeled distinctly. Hover on board shows valid moves for current player (educational).</div></div><div class="task-effort">2h</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">Post-Game Screen</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Finish order + ELO display</div><div class="task-detail">Ordered list of players. ELO delta animates counting up/down over 1.5s on mount. Color coded +/-.</div></div><div class="task-effort">2h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Rematch / New Game / Profile buttons</div></div><div class="task-effort">1h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Replay + chat archive links</div></div><div class="task-effort">30m</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">Replay Viewer</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Replay playback engine</div><div class="task-detail">Fetch move log from API. Step through applying moves to a local game state copy. Board re-renders at each step.</div></div><div class="task-effort">4h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Playback controls</div><div class="task-detail">Slider (seek to any move). Previous/Next step. Play/Pause. Speed selector (1×/2×/4×). Synced chat log panel.</div></div><div class="task-effort">3h</div><div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 9 — AUTH & PROFILES
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <span class="section-title">Auth & Profiles</span>
+      <span class="section-weeks">Weeks 7–9</span>
+    </div>
+    <p class="section-desc">User accounts, profile pages, ELO system. Can be developed in parallel with game flow. Reference wireframes.html screen 08.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Profile Page</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Profile page layout</div><div class="task-detail">Avatar, username, country, tier badge, ELO. Edit controls visible to own profile only.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">ELO history chart (Recharts)</div><div class="task-detail">Line chart of rating over time. Two tabs: 2P / Multi. Hover tooltip shows exact rating + date.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Game history table</div><div class="task-detail">Paginated. Filter by mode. Each row links to replay. Result, ELO delta, moves, date.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Avatar upload flow</div><div class="task-detail">Click avatar → file picker → S3 presigned upload → update profile API → re-render.</div></div><div class="task-effort">2h</div><div></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">ELO System (Server)</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">2-player ELO calculator</div><div class="task-detail">Standard Elo. K-factor by games played (40 provisional, 32 early, 24 mid, 16 veteran). Rating floor 100.</div></div><div class="task-effort">2h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Multi-player ELO (pairwise decomposition)</div><div class="task-detail">Convert finish order to pairwise results. K_multi = K / (playerCount - 1). Run standard Elo for each pair. Sum deltas.</div></div><div class="task-effort">3h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">ELO update on game end</div><div class="task-detail">Called in game:over handler. Wrapped in DB transaction. Write elo_ratings + elo_history rows atomically. Emit updated values to players.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Inactivity decay job</div><div class="task-detail">Cron job (node-cron) runs weekly. Finds users inactive 60+ days. Applies -5 ELO. Floor: 1200. Logs to elo_history.</div></div><div class="task-effort">2h</div><div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 10 — POLISH
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <span class="section-title">Polish</span>
+      <span class="section-weeks">Weeks 9–11</span>
+    </div>
+    <p class="section-desc">The details that make the difference between a functional prototype and something people actually want to use.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">UI Polish</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Loading states everywhere</div><div class="task-detail">Skeleton screens for lobby, profile. Spinner on board while connecting. Never show a blank white box.</div></div><div class="task-effort">3h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Empty states</div><div class="task-detail">No games in lobby, no history yet, no chat messages. Each has a friendly illustration + prompt.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Error states + reconnection UI</div><div class="task-detail">Disconnected from server → banner + reconnect button. API errors show inline messages, not generic alerts.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Page transitions (Framer Motion)</div><div class="task-detail">Fade transitions between major routes. Modal slide-up. Marble landing bounce. Keep subtle.</div></div><div class="task-effort">2h</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">Mobile Responsiveness</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Tablet layout (768–1279px)</div><div class="task-detail">Chat collapses to drawer. Board scales to fill. Sidebar toggleable.</div></div><div class="task-effort">3h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Mobile layout (&lt;768px)</div><div class="task-detail">Board fills width. Player list and chat in bottom drawers. Touch-optimized marble tap targets (min 44px).</div></div><div class="task-effort">4h</div><div></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Performance</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Canvas render profiling</div><div class="task-detail">Use Chrome DevTools performance tab. Target: full repaint &lt;4ms. Profile with 6 players' marbles all animating.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">React component memoization</div><div class="task-detail">Audit re-renders with React DevTools. Wrap heavy components in React.memo. Stabilize callbacks with useCallback.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Bundle size audit</div><div class="task-detail">Run vite build --report. Target: &lt;200KB gzipped JS. Tree-shake unused Recharts, Framer Motion exports.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Image optimization (avatars)</div><div class="task-detail">Serve WebP via CloudFront. Max 128×128px for avatars. Use srcset for retina.</div></div><div class="task-effort">1h</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">Accessibility</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Keyboard navigation (lobby + menus)</div><div class="task-detail">Tab order logical. Focus visible. Modals trap focus. Escape closes.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">ARIA labels on interactive elements</div><div class="task-detail">Buttons have aria-label. Game events announced via aria-live region ("Blue moved from A3 to C3").</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Color contrast check (WCAG AA)</div><div class="task-detail">Run axe DevTools. Fix any &lt;4.5:1 text contrast. Ensure player colors distinguishable (not just by hue).</div></div><div class="task-effort">1h</div><div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 11 — TESTING
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">11</span>
+      <span class="section-title">Testing</span>
+      <span class="section-weeks">Weeks 10–12</span>
+    </div>
+    <p class="section-desc">Structured testing before any traffic. Game engine tests should already be passing from Phase 2; this phase adds integration, load, and end-to-end coverage.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Unit Tests (ongoing, finalize here)</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Game engine — 100% coverage</div><div class="task-detail">All move types, edge cases, all player counts. Achieve and lock 100% line coverage with Istanbul/c8.</div></div><div class="task-effort">4h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">ELO calculator unit tests</div><div class="task-detail">Known inputs → known outputs. Test K-factor thresholds, floor enforcement, multi-player pairwise math.</div></div><div class="task-effort">2h</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">Integration Tests</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">API integration tests (Supertest)</div><div class="task-detail">Test every REST endpoint with a real test DB (transactions rolled back after each test). Auth flows, room CRUD, matchmaking.</div></div><div class="task-effort">6h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">WebSocket integration tests</div><div class="task-detail">Use socket.io-client in tests. Simulate 2 players joining a room, playing a full game via socket events, verify game:over payload.</div></div><div class="task-effort">6h</div><div class="task-tag crit">Critical</div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">Load Testing</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">k6 load test — REST API</div><div class="task-detail">Ramp to 200 concurrent users. Monitor P95 latency &lt;200ms. Check for memory leaks over 10-min soak.</div></div><div class="task-effort">3h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">k6 load test — WebSocket</div><div class="task-detail">Simulate 100 concurrent games (400 players). Monitor socket event latency P95 &lt;80ms. Verify Redis adapter scales.</div></div><div class="task-effort">4h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Database query profiling</div><div class="task-detail">EXPLAIN ANALYZE on leaderboard, game history, move log queries. Add indexes where P95 &gt;50ms.</div></div><div class="task-effort">2h</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">Manual Testing</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Cross-browser (Chrome, Firefox, Safari, Edge)</div><div class="task-detail">Canvas rendering. WebSocket connection. Focus/accessibility. File upload.</div></div><div class="task-effort">3h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Mobile devices (iOS Safari, Android Chrome)</div><div class="task-detail">Touch interaction on board. Viewport scaling. Keyboard doesn't break layout.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Full game playthroughs (2P, 4P, 6P)</div><div class="task-detail">Manual complete games in each configuration. Verify ELO updates correctly. Replay plays back cleanly.</div></div><div class="task-effort">3h</div><div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       PHASE 12 — INFRASTRUCTURE
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">12</span>
+      <span class="section-title">Infrastructure & Deployment</span>
+      <span class="section-weeks">Weeks 12–14</span>
+    </div>
+    <p class="section-desc">Provision production AWS infrastructure, set up CI/CD for automated deploys, and configure monitoring before any real traffic arrives.</p>
+
+    <div class="task-cols">
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">AWS Setup</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">VPC + security groups</div><div class="task-detail">Separate public (ALB) and private (ECS, RDS, Redis) subnets. No direct internet access to DB or cache.</div></div><div class="task-effort">2h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">RDS PostgreSQL (Multi-AZ)</div><div class="task-detail">db.t3.medium to start. Automated backups (7-day retention). Parameter group tuned for connection pooling.</div></div><div class="task-effort">1h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">ElastiCache Redis cluster</div><div class="task-detail">cache.t3.micro to start. Cluster mode disabled (single shard). Socket.io adapter + game state.</div></div><div class="task-effort">1h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">S3 bucket (avatar uploads)</div><div class="task-detail">Private bucket. Pre-signed URL upload. Public read via CloudFront only. Lifecycle: delete unattached uploads after 1 day.</div></div><div class="task-effort">1h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">ECR (container registry)</div><div class="task-detail">Push server and web Docker images. Tag with git SHA. Lifecycle policy: keep last 10 images.</div></div><div class="task-effort">1h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">ECS Fargate service (server)</div><div class="task-detail">Task: 0.5 vCPU / 1GB RAM to start. Target group on ALB. Auto-scaling: 1–5 tasks based on CPU &gt;60%.</div></div><div class="task-effort">3h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">ALB + sticky sessions</div><div class="task-detail">Target: ECS tasks. Sticky sessions via cookie (required for Socket.io). HTTPS listener + cert.</div></div><div class="task-effort">2h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">CloudFront + S3 (static web app)</div><div class="task-detail">Vite build → S3 → CloudFront. SPA routing: 404 → index.html. Cache-Control: immutable for hashed assets.</div></div><div class="task-effort">2h</div><div></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="task-group">
+          <div class="task-group-title">CI/CD</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Production GitHub Actions pipeline</div><div class="task-detail">On merge to main: build Docker → push to ECR → run migrations → update ECS service (rolling). Zero-downtime deploy.</div></div><div class="task-effort">3h</div><div class="task-tag crit">Critical</div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Staging environment</div><div class="task-detail">Separate staging ECS + RDS. Deploy on merge to dev branch. Used for QA before prod release.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Secrets management (AWS Secrets Manager)</div><div class="task-detail">DB password, JWT secret, Google OAuth credentials stored in Secrets Manager. ECS task fetches on start.</div></div><div class="task-effort">1h</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">Monitoring</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Sentry (error tracking)</div><div class="task-detail">Install in both server and web. Source maps uploaded on deploy. Alert on new error types.</div></div><div class="task-effort">1h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">CloudWatch dashboards</div><div class="task-detail">Track: ECS CPU/memory, ALB 4xx/5xx rate, RDS connections, Redis memory, WebSocket connection count.</div></div><div class="task-effort">2h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Uptime alerting</div><div class="task-detail">CloudWatch alarm → SNS → email on: &gt;1% 5xx rate, ECS task crash, DB connection exhaustion.</div></div><div class="task-effort">1h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Cost alert</div><div class="task-detail">AWS Budgets: alert if monthly spend exceeds $250. Prevents surprise bills during beta traffic spikes.</div></div><div class="task-effort">30m</div><div></div></div>
+          </div>
+        </div>
+        <div class="task-group">
+          <div class="task-group-title">DNS & SSL</div>
+          <div class="task-list">
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">Domain + Route 53</div><div class="task-detail">Point domain to CloudFront (web) and ALB (API/sockets). Separate api.yourdomain.com subdomain.</div></div><div class="task-effort">1h</div><div></div></div>
+            <div class="task"><div class="task-check"></div><div class="task-body"><div class="task-name">ACM SSL certificate</div><div class="task-detail">Wildcard cert via ACM. Auto-renews. Applied to both ALB (HTTPS) and CloudFront (HTTPS).</div></div><div class="task-effort">30m</div><div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       LAUNCH CHECKLIST
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">13</span>
+      <span class="section-title">Launch Checklist</span>
+    </div>
+
+    <div class="check-grid">
+      <div class="check-group">
+        <h4>Security</h4>
+        <div class="check-item"><div class="check-box"></div>Rate limiting active on all auth endpoints</div>
+        <div class="check-item"><div class="check-box"></div>JWT secrets rotated from dev values</div>
+        <div class="check-item"><div class="check-box"></div>Content Security Policy headers set</div>
+        <div class="check-item"><div class="check-box"></div>SQL injection: all queries through Prisma</div>
+        <div class="check-item"><div class="check-box"></div>All .env vars in Secrets Manager (nothing in code)</div>
+        <div class="check-item"><div class="check-box"></div>S3 bucket not publicly listable</div>
+        <div class="check-item"><div class="check-box"></div>No stack traces in API error responses</div>
+        <div class="check-item"><div class="check-box"></div>HTTPS enforced everywhere (no HTTP)</div>
+      </div>
+      <div class="check-group">
+        <h4>Reliability</h4>
+        <div class="check-item"><div class="check-box"></div>DB backups verified (restore test done)</div>
+        <div class="check-item"><div class="check-box"></div>ECS auto-scaling configured + tested</div>
+        <div class="check-item"><div class="check-box"></div>ALB sticky sessions confirmed working</div>
+        <div class="check-item"><div class="check-box"></div>Redis adapter multi-node tested (2 ECS tasks)</div>
+        <div class="check-item"><div class="check-box"></div>Reconnection flow tested (kill Docker mid-game)</div>
+        <div class="check-item"><div class="check-box"></div>Sentry receiving errors from prod</div>
+        <div class="check-item"><div class="check-box"></div>CloudWatch alarms firing correctly (tested)</div>
+        <div class="check-item"><div class="check-box"></div>Zero-downtime deploy confirmed</div>
+      </div>
+      <div class="check-group">
+        <h4>Game Correctness</h4>
+        <div class="check-item"><div class="check-box"></div>Complete 2P game played on prod (verify ELO)</div>
+        <div class="check-item"><div class="check-box"></div>Complete 4P game played on prod</div>
+        <div class="check-item"><div class="check-box"></div>Complete 6P game played on prod</div>
+        <div class="check-item"><div class="check-box"></div>Timeout / auto-move tested</div>
+        <div class="check-item"><div class="check-box"></div>Resign flow tested mid-game</div>
+        <div class="check-item"><div class="check-box"></div>Spectator view verified real-time</div>
+        <div class="check-item"><div class="check-box"></div>Replay verified for all game types</div>
+        <div class="check-item"><div class="check-box"></div>ELO persisting correctly to DB</div>
+      </div>
+      <div class="check-group">
+        <h4>Frontend & UX</h4>
+        <div class="check-item"><div class="check-box"></div>Google Analytics / Plausible installed</div>
+        <div class="check-item"><div class="check-box"></div>All 404 / error pages styled</div>
+        <div class="check-item"><div class="check-box"></div>Favicon + og:image set</div>
+        <div class="check-item"><div class="check-box"></div>Mobile tested on real iOS + Android device</div>
+        <div class="check-item"><div class="check-box"></div>Lighthouse score ≥ 90 (perf + accessibility)</div>
+        <div class="check-item"><div class="check-box"></div>Google OAuth redirect URIs updated to prod domain</div>
+        <div class="check-item"><div class="check-box"></div>Privacy policy + ToS pages linked in footer</div>
+        <div class="check-item"><div class="check-box"></div>Beta feedback form / Discord link visible</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       RISK REGISTER
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">14</span>
+      <span class="section-title">Risk Register</span>
+    </div>
+
+    <div class="info-box" style="padding:0; overflow:hidden;">
+      <table class="risk-table">
+        <thead>
+          <tr><th>Risk</th><th>Severity</th><th>Mitigation</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Turn timer state lost on ECS task restart</td><td class="risk-h">High</td><td>Store timerEndsAt in Redis. On reconnect, recover from Redis. Test by force-killing task mid-game.</td></tr>
+          <tr><td>Socket.io sticky session breaks during ECS deploy</td><td class="risk-h">High</td><td>ALB cookie-based stickiness. Rolling deploy (never kill all tasks at once). Test with k6 during deploy.</td></tr>
+          <tr><td>Move validation bug allows illegal board states</td><td class="risk-h">High</td><td>100% unit test coverage on engine. All validation server-side only. Replay any suspicious game from move log.</td></tr>
+          <tr><td>ELO calculation error persists to DB</td><td class="risk-h">High</td><td>Wrap ELO update in DB transaction. Extensive unit tests with known inputs. Manual verify first 20 ranked games.</td></tr>
+          <tr><td>Redis game state lost on cache eviction</td><td class="risk-m">Med</td><td>Set maxmemory-policy noeviction for game state keys. Monitor Redis memory, scale before hitting limit.</td></tr>
+          <tr><td>Canvas performance degrades on low-end devices</td><td class="risk-m">Med</td><td>Profile on iPhone SE and budget Android. Reduce particle effects if frame drops detected. Offer a "low quality" mode.</td></tr>
+          <tr><td>Google OAuth credentials expire or are revoked</td><td class="risk-m">Med</td><td>Email + password auth as fallback. Monitor OAuth error rate in Sentry. Rotate credentials annually.</td></tr>
+          <tr><td>Matchmaking never finds a match (low traffic)</td><td class="risk-m">Med</td><td>ELO window expands to ±300 after 60s. Fall back to any available opponent after 120s. Show queue depth to users.</td></tr>
+          <tr><td>Profanity filter false positives block valid messages</td><td class="risk-l">Low</td><td>Use conservative word list. Allow room hosts to disable. Provide simple appeal ("report false positive") flow.</td></tr>
+          <tr><td>S3 avatar upload costs spike</td><td class="risk-l">Low</td><td>Max 2MB per upload. Server-side validation before presigned URL issued. CloudFront caches aggressively.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       POST-LAUNCH ROADMAP
+  ══════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">15</span>
+      <span class="section-title">Post-Launch Roadmap</span>
+    </div>
+    <p class="section-desc">Features intentionally deferred to keep the initial build focused. Prioritize based on user feedback after launch.</p>
+
+    <div class="roadmap">
+      <div class="roadmap-col">
+        <h4>Month 2–3</h4>
+        <div class="roadmap-item">AI bot opponents (3 difficulty tiers)</div>
+        <div class="roadmap-item">Bot fill for empty seats in casual games</div>
+        <div class="roadmap-item">Sound effects + toggle</div>
+        <div class="roadmap-item">Keyboard shortcuts for marble selection</div>
+        <div class="roadmap-item">Leaderboard page (full, filterable)</div>
+        <div class="roadmap-item">Friends list + challenge system</div>
+      </div>
+      <div class="roadmap-col">
+        <h4>Month 4–6</h4>
+        <div class="roadmap-item">Weekly tournaments (Swiss system)</div>
+        <div class="roadmap-item">Alternate board themes (Wood, Glass, Neon)</div>
+        <div class="roadmap-item">Custom marble color unlocks (via play)</div>
+        <div class="roadmap-item">Game variant: 6-marble fast mode</div>
+        <div class="roadmap-item">In-game move analysis (best move hint)</div>
+        <div class="roadmap-item">Spectator economy (tip host, tip winner)</div>
+      </div>
+      <div class="roadmap-col">
+        <h4>Month 6+</h4>
+        <div class="roadmap-item">React Native mobile app</div>
+        <div class="roadmap-item">Push notifications (your turn)</div>
+        <div class="roadmap-item">Async / correspondence mode (24h/turn)</div>
+        <div class="roadmap-item">Anti-cheat engine-assist detection</div>
+        <div class="roadmap-item">Premium subscription (themes, history)</div>
+        <div class="roadmap-item">Embeddable replay widget for streamers</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="border-top: 1px solid var(--line); padding-top: 20px; margin-top: 20px; display:flex; justify-content:space-between; font-size:11px; color:var(--muted);">
+    <span>Chinese Checkers Online — Buildout Plan v1.0</span>
+    <span>References: DESIGN.md · wireframes.html</span>
+  </div>
+
+</div>
+
+<script>
+// Make checkboxes interactive
+document.querySelectorAll('.task-check, .check-box').forEach(el => {
+  el.addEventListener('click', () => el.classList.toggle('done'));
+});
+// TOC scrolling
+document.querySelectorAll('.toc-item').forEach((item, i) => {
+  item.addEventListener('click', () => {
+    const sections = document.querySelectorAll('.section');
+    if (sections[i]) sections[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+</body>
+</html>

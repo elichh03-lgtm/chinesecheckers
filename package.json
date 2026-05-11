@@ -1,0 +1,25 @@
+{
+  "name": "chinese-checkers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"pnpm --filter server dev\" \"pnpm --filter web dev\"",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test && (pnpm audit || true)",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "deploy:server": "fly deploy --config apps/server/fly.toml --dockerfile apps/server/Dockerfile .",
+    "deploy:web": "fly deploy --config apps/web/fly.toml --dockerfile apps/web/Dockerfile .",
+    "deploy": "pnpm deploy:server && pnpm deploy:web"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

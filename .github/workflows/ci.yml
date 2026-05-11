@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chinesecheckers_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chinesecheckers_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chinesecheckers_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-jwt-secret-not-for-production
+      JWT_REFRESH_SECRET: ci-refresh-secret-not-for-production
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter server exec prisma generate
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Game engine tests (coverage gate ≥ 95% statements)
+        run: pnpm --filter @cc/game-engine exec vitest run --coverage --coverage.reporter=text --coverage.reporter=json-summary --coverage.thresholds.statements=95
+
+      - name: Apply Prisma migrations to CI database
+        run: pnpm --filter server exec prisma migrate deploy
+
+      - name: Server tests
+        run: pnpm --filter server test
+
+      - name: Build web
+        run: pnpm --filter web build
+
+      - name: Bundle size budget (250kb gzipped per chunk)
+        run: |
+          set -euo pipefail
+          BUDGET=$((250 * 1024))
+          fail=0
+          shopt -s nullglob
+          for f in apps/web/dist/assets/*.js apps/web/dist/assets/*.css; do
+            size=$(gzip -c "$f" | wc -c | tr -d ' ')
+            if [ "$size" -gt "$BUDGET" ]; then
+              echo "FAIL: $f is ${size} bytes gzipped (>${BUDGET})"
+              fail=1
+            else
+              echo "ok:  $f is ${size} bytes gzipped"
+            fi
+          done
+          exit "$fail"
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright E2E
+        working-directory: apps/web
+        run: npx playwright test
+
+      - name: pnpm audit (production deps)
+        run: pnpm audit --prod
+        continue-on-error: true
