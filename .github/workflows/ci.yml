@@ -113,6 +113,18 @@ jobs:
         working-directory: apps/web
         run: npx playwright install --with-deps chromium
 
+      - name: Write server .env for Playwright webServer
+        run: |
+          cat > apps/server/.env <<EOF
+          DATABASE_URL=${DATABASE_URL}
+          REDIS_URL=${REDIS_URL}
+          JWT_SECRET=${JWT_SECRET}
+          JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+          PORT=3001
+          CLIENT_URL=http://localhost:5173
+          NODE_ENV=test
+          EOF
+
       - name: Playwright E2E
         working-directory: apps/web
         run: npx playwright test
