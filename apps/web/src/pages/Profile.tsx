@@ -1,9 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { DeleteAccountModal } from '@/components/ui/DeleteAccountModal';
 import { listSessions, revokeSession, type SessionRow } from '@/api/sessions';
+import { currentLocale } from '@/i18n';
+
+function fmtDate(iso: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(iso));
+}
+function fmtDateTime(iso: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  }).format(new Date(iso));
+}
+function fmtNum(n: number, locale: string, opts?: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat(locale, opts).format(n);
+}
 
 type ProfileResponse = {
   id: string;

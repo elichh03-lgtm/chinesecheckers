@@ -312,34 +312,35 @@ function CreateRoomCard(props: {
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
 }): JSX.Element {
+  const { t } = useTranslation();
   return (
     <form
       onSubmit={props.onSubmit}
       className="bg-panel rounded-xl border border-accent/30 p-5 space-y-4 h-fit animate-slide-up"
     >
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold">New Room</h2>
+        <h2 className="font-semibold">{t('createRoom.heading')}</h2>
         <button
           type="button"
           onClick={props.onCancel}
           className="text-muted hover:text-text text-sm"
-          aria-label="Cancel"
+          aria-label={t('common.cancel')}
         >
           ✕
         </button>
       </div>
       <div>
-        <label className="block text-xs font-medium uppercase tracking-wider text-muted mb-1.5">Name</label>
+        <label className="block text-xs font-medium uppercase tracking-wider text-muted mb-1.5">{t('createRoom.name')}</label>
         <input
           value={props.name}
           onChange={(e) => props.setName(e.target.value)}
-          placeholder="My game"
+          placeholder={t('createRoom.namePlaceholder')}
           maxLength={50}
           className="w-full bg-canvas border border-line rounded-md px-3 py-2 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium uppercase tracking-wider text-muted mb-1.5">Players</label>
+        <label className="block text-xs font-medium uppercase tracking-wider text-muted mb-1.5">{t('createRoom.players')}</label>
         <div className="grid grid-cols-4 gap-1 p-1 bg-canvas rounded-md">
           {([2, 3, 4, 6] as const).map((n) => (
             <button
@@ -359,7 +360,7 @@ function CreateRoomCard(props: {
       </div>
       <div>
         <label className="block text-xs font-medium uppercase tracking-wider text-muted mb-1.5">
-          Turn timer · {props.timer}s
+          {t('createRoom.turnTimer', { seconds: props.timer })}
         </label>
         <input
           type="range"
@@ -382,9 +383,9 @@ function CreateRoomCard(props: {
           className="mt-1 accent-accent"
         />
         <span>
-          <span className="text-text font-medium">Blocking rule</span>
+          <span className="text-text font-medium">{t('createRoom.blockingRule')}</span>
           <span className="block text-xs text-muted mt-0.5">
-            Evict an enemy marble out of your target zone on your turn.
+            {t('createRoom.blockingRuleHelp')}
           </span>
         </span>
       </label>
@@ -394,7 +395,7 @@ function CreateRoomCard(props: {
           type="submit"
           className="flex-1 bg-accent hover:bg-accent/90 text-ink font-semibold py-2.5 rounded-md transition shadow-sm"
         >
-          Create
+          {t('createRoom.create')}
         </button>
       </div>
     </form>
@@ -402,14 +403,16 @@ function CreateRoomCard(props: {
 }
 
 function MuteToggle(): JSX.Element {
+  const { t } = useTranslation();
   const [muted, setLocal] = useState(getMuted());
   useEffect(() => subscribeSound(() => setLocal(getMuted())), []);
+  const label = muted ? t('common.unmuteSound') : t('common.muteSound');
   return (
     <button
       data-testid="mute-toggle"
       aria-pressed={muted}
-      aria-label={muted ? 'Unmute sound' : 'Mute sound'}
-      title={muted ? 'Unmute sound' : 'Mute sound'}
+      aria-label={label}
+      title={label}
       onClick={() => setMuted(!muted)}
       className="px-2 py-1.5 rounded-md text-muted hover:text-text hover:bg-panel transition"
     >
@@ -435,6 +438,30 @@ function MuteToggle(): JSX.Element {
         </svg>
       )}
     </button>
+  );
+}
+
+function LanguageSwitcher(): JSX.Element {
+  const { t, i18n } = useTranslation();
+  const current = (i18n.language || 'en').split('-')[0];
+  return (
+    <label className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-muted hover:text-text hover:bg-panel transition">
+      <span className="sr-only">{t('common.language')}</span>
+      <span aria-hidden>🌐</span>
+      <select
+        data-testid="language-select"
+        aria-label={t('common.language')}
+        value={SUPPORTED_LOCALES.includes(current as never) ? current : 'en'}
+        onChange={(e) => void i18n.changeLanguage(e.target.value)}
+        className="bg-transparent text-sm focus:outline-none cursor-pointer"
+      >
+        {SUPPORTED_LOCALES.map((lng) => (
+          <option key={lng} value={lng} className="bg-panel text-text">
+            {lng.toUpperCase()}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
