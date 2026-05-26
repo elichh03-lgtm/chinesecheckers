@@ -14,7 +14,7 @@
     "deploy": "pnpm deploy:server && pnpm deploy:web"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
+    "concurrently": "^9.2.1",
     "typescript": "^5.4.5"
   },
   "engines": {
